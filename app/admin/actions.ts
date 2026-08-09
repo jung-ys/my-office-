@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { checkAdminPassword, clearAdminSession, isAdmin, setAdminSession } from "@/lib/auth";
 import { runSeed } from "@/lib/seedData";
+import { parseSeriesVolume } from "@/lib/seriesVolume";
+
+export type StartingPointState = { ok: boolean; message: string } | null;
 
 async function requireAdmin() {
   if (!(await isAdmin())) {
@@ -86,14 +89,26 @@ export async function updateStudent(studentId: string, formData: FormData) {
 }
 
 /**
- * 학생마다 실제로 배우기 시작하는 권/과가 달라서, 관리자가 "시작 지점"을 지정할 수 있게 합니다.
- * 선택한 영상보다 앞에 있는(같은 과목 안에서 시리즈 순서 → 챕터 순서 → 영상 순서 기준) 배정된 영상들을
- * 전부 "시청 완료"로 표시해서, 학생은 시작 지점부터 이어서 보면 됩니다.
+ * 학생마다 실제로 배우기 시작하는 권/과가 달라서, 관리자가 교재(시리즈)별로 "시작 지점"을
+ * 지정할 수 있게 합니다. 선택한 영상보다 앞에 있는 배정된 영상들을 전부 "시청 완료"로
+ * 표시해서, 학생은 시작 지점부터 이어서 보면 됩니다.
+ *
+ * "같은 교재"의 범위는 시리즈 제목의 권 번호로 판단해요 (예: "777 초등영문법 0~2권"은
+ * 같은 교재로 묶여서 2권을 시작 지점으로 잡으면 0,1권도 함께 완료 처리됨). 권 번호가 없는
+ * 시리즈(예: "1316 중등문법1")는 그 시리즈 하나만의 범위로 처리돼서, 서로 다른 교재를
+ * 각각 독립적으로 여러 번 설정할 수 있어요.
+ *
+ * useActionState와 함께 쓰도록 (studentId로 바인딩된 뒤) prevState를 받는 형태예요 —
+ * 리다이렉트하지 않고 결과 메시지를 반환해서, 저장해도 화면(아코디언)이 닫히지 않아요.
  */
-export async function setStartingPoint(studentId: string, formData: FormData) {
+export async function setStartingPoint(
+  studentId: string,
+  _prevState: StartingPointState,
+  formData: FormData
+): Promise<StartingPointState> {
   await requireAdmin();
   const startVideoId = String(formData.get("startVideoId") ?? "").trim();
-  if (!startVideoId) return;
+  if (!startVideoId) return { ok: false, message: "시작할 영상을 선택해주세요." };
 
   const [student, startVideo] = await Promise.all([
     prisma.student.findUnique({ where: { id: studentId }, select: { name: true } }),
@@ -102,36 +117,59 @@ export async function setStartingPoint(studentId: string, formData: FormData) {
       select: {
         order: true,
         chapter: {
-          select: { order: true, series: { select: { order: true, subjectId: true } } },
+          select: {
+            order: true,
+            seriesId: true,
+            series: { select: { title: true, order: true, subjectId: true } },
+          },
         },
       },
     }),
   ]);
-  if (!student || !startVideo) return;
+  if (!student || !startVideo) return { ok: false, message: "학생 또는 영상을 찾을 수 없어요." };
 
-  const { subjectId } = startVideo.chapter.series;
-  const seriesOrder = startVideo.chapter.series.order;
+  const targetSeriesId = startVideo.chapter.seriesId;
+  const targetSeriesTitle = startVideo.chapter.series.title;
+  const subjectId = startVideo.chapter.series.subjectId;
   const chapterOrder = startVideo.chapter.order;
   const videoOrder = startVideo.order;
 
+  // 같은 "교재 이름(가족)"에 속한, 같거나 더 낮은 권의 시리즈들만 모음
+  const parsedTarget = parseSeriesVolume(targetSeriesTitle);
+  const familySeriesIds = new Set<string>([targetSeriesId]);
+  if (parsedTarget) {
+    const subjectSeries = await prisma.series.findMany({
+      where: { subjectId },
+      select: { id: true, title: true },
+    });
+    for (const se of subjectSeries) {
+      const parsed = parseSeriesVolume(se.title);
+      if (parsed && parsed.base === parsedTarget.base && parsed.vol <= parsedTarget.vol) {
+        familySeriesIds.add(se.id);
+      }
+    }
+  }
+
   const assignedVideos = await prisma.video.findMany({
     where: {
-      chapter: { series: { subjectId }, assignedStudents: { some: { studentId } } },
+      chapter: { seriesId: { in: [...familySeriesIds] }, assignedStudents: { some: { studentId } } },
     },
     select: {
       id: true,
       order: true,
-      chapter: { select: { order: true, series: { select: { order: true } } } },
+      chapter: { select: { order: true, seriesId: true } },
     },
   });
 
   const priorVideoIds = assignedVideos
     .filter((v) => {
-      const so = v.chapter.series.order;
-      if (so !== seriesOrder) return so < seriesOrder;
-      const co = v.chapter.order;
-      if (co !== chapterOrder) return co < chapterOrder;
-      return v.order < videoOrder;
+      if (v.chapter.seriesId === targetSeriesId) {
+        // 같은 시리즈 안에서는 챕터 순서 → 영상 순서로 비교
+        if (v.chapter.order !== chapterOrder) return v.chapter.order < chapterOrder;
+        return v.order < videoOrder;
+      }
+      // 같은 교재의 더 낮은 권은 전부 "이전"으로 간주
+      return true;
     })
     .map((v) => v.id);
 
@@ -150,7 +188,10 @@ export async function setStartingPoint(studentId: string, formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/student");
-  redirect(`/admin?startset=${encodeURIComponent(student.name)}`);
+  return {
+    ok: true,
+    message: `${targetSeriesTitle} 시작 지점을 저장했어요. (그 이전 영상 ${priorVideoIds.length}개를 시청 완료로 표시함)`,
+  };
 }
 
 /**

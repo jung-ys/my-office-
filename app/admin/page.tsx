@@ -3,17 +3,11 @@ import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { getAllStudentsProgressOverview } from "@/lib/progress";
 import { GRADE_OPTIONS } from "@/lib/grades";
-import {
-  adminLogin,
-  adminLogout,
-  createStudent,
-  deleteStudent,
-  setStartingPoint,
-  updateStudent,
-} from "./actions";
+import { adminLogin, adminLogout, createStudent, deleteStudent, updateStudent } from "./actions";
 import SeedButton from "./SeedButton";
 import SeriesAssignmentGroup from "./SeriesAssignmentGroup";
 import ResetStudentButton from "./ResetStudentButton";
+import StartingPointForm from "./StartingPointForm";
 
 export default async function AdminPage({
   searchParams,
@@ -24,12 +18,11 @@ export default async function AdminPage({
     added?: string;
     updated?: string;
     deleted?: string;
-    startset?: string;
     reset?: string;
   }>;
 }) {
   const admin = await isAdmin();
-  const { error, seeded, added, updated, deleted, startset, reset } = await searchParams;
+  const { error, seeded, added, updated, deleted, reset } = await searchParams;
 
   if (!admin) {
     return (
@@ -99,6 +92,21 @@ export default async function AdminPage({
     return parts.join(" · ");
   }
 
+  /** 이 학생에게 배정된 챕터들을, 시작 지점 선택창에 넣을 "챕터별 영상 목록" 형태로 묶어줌 */
+  function startingPointGroups(studentId: string) {
+    const assigned = assignedByStudent.get(studentId);
+    const groups: { label: string; videos: { id: string; title: string }[] }[] = [];
+    for (const subject of subjects) {
+      for (const se of subject.series) {
+        for (const ch of se.chapters) {
+          if (!assigned?.has(ch.id)) continue;
+          groups.push({ label: `${subject.icon} ${se.title} · ${ch.title}`, videos: ch.videos });
+        }
+      }
+    }
+    return groups;
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-8">
       <div className="flex items-center justify-between">
@@ -131,11 +139,6 @@ export default async function AdminPage({
       {deleted && (
         <p className="rounded-lg bg-zinc-100 px-4 py-3 text-sm text-zinc-600">
           🗑 {deleted}님을 삭제했어요.
-        </p>
-      )}
-      {startset && (
-        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          ✅ {startset}님의 시작 지점을 설정했어요. 그 이전 배정된 영상은 모두 시청 완료로 표시됐어요.
         </p>
       )}
       {reset && (
@@ -210,6 +213,7 @@ export default async function AdminPage({
               </summary>
 
               <form
+                id={`student-form-${s.id}`}
                 action={updateStudent.bind(null, s.id)}
                 className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3"
               >
@@ -298,69 +302,39 @@ export default async function AdminPage({
                     ))}
                   </div>
                 </div>
-
-                <div className="mt-2 rounded-lg bg-zinc-50 p-3">
-                  <p className="mb-2 text-xs font-semibold text-zinc-600">
-                    🚩 시작 지점 설정 (교재마다 시작하는 권·과가 달라요. 실제로 시작할 영상을 고르면
-                    그 이전의 배정된 영상은 전부 시청 완료로 표시돼요)
-                  </p>
-                  <div className="flex gap-2">
-                    <select
-                      name="startVideoId"
-                      defaultValue=""
-                      className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                    >
-                      <option value="" disabled>
-                        시작할 영상을 선택하세요
-                      </option>
-                      {subjects.map((subject) =>
-                        subject.series.map((se) =>
-                          se.chapters
-                            .filter((ch) => assignedByStudent.get(s.id)?.has(ch.id))
-                            .map((ch) => (
-                              <optgroup
-                                key={ch.id}
-                                label={`${subject.icon} ${se.title} · ${ch.title}`}
-                              >
-                                {ch.videos.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.title}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))
-                        )
-                      )}
-                    </select>
-                    <button
-                      formAction={setStartingPoint.bind(null, s.id)}
-                      className="shrink-0 rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
-                    >
-                      시작 지점 저장
-                    </button>
-                  </div>
-                  {(assignedByStudent.get(s.id)?.size ?? 0) === 0 && (
-                    <p className="mt-1 text-xs text-zinc-400">
-                      먼저 위에서 배정 교재를 체크하고 저장한 뒤에 설정할 수 있어요.
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <ResetStudentButton studentId={s.id} studentName={s.name} />
-                  <div className="flex gap-3">
-                    <button
-                      formAction={deleteStudent.bind(null, s.id)}
-                      className="text-sm text-red-500 hover:underline"
-                    >
-                      삭제
-                    </button>
-                    <button className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                      저장
-                    </button>
-                  </div>
-                </div>
               </form>
+
+              <div className="mt-2 rounded-lg bg-zinc-50 p-3">
+                <p className="mb-2 text-xs font-semibold text-zinc-600">
+                  🚩 시작 지점 설정 (교재마다 시작하는 권·과가 달라요. 실제로 시작할 영상을 고르면
+                  그 이전의 배정된 영상은 전부 시청 완료로 표시돼요. 저장해도 이 화면은 닫히지
+                  않으니, 교재별로 여러 번 설정할 수 있어요)
+                </p>
+                <StartingPointForm
+                  studentId={s.id}
+                  groups={startingPointGroups(s.id)}
+                  disabled={(assignedByStudent.get(s.id)?.size ?? 0) === 0}
+                />
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
+                <ResetStudentButton studentId={s.id} studentName={s.name} />
+                <div className="flex gap-3">
+                  <button
+                    form={`student-form-${s.id}`}
+                    formAction={deleteStudent.bind(null, s.id)}
+                    className="text-sm text-red-500 hover:underline"
+                  >
+                    삭제
+                  </button>
+                  <button
+                    form={`student-form-${s.id}`}
+                    className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                  >
+                    저장 (확인 후 여기를 눌러야 닫혀요)
+                  </button>
+                </div>
+              </div>
             </details>
           ))}
           {studentOverview.length === 0 && (
