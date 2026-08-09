@@ -16,19 +16,15 @@ export default async function ChapterVideoListPage({
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },
     include: {
-      series: {
-        include: {
-          subject: true,
-          assignedStudents: { where: { studentId: student.id } },
-        },
-      },
+      series: { include: { subject: true } },
+      assignedStudents: { where: { studentId: student.id } },
     },
   });
   if (
     !chapter ||
     chapter.series.id !== seriesId ||
     chapter.series.subject.key !== subjectKey ||
-    chapter.series.assignedStudents.length === 0
+    chapter.assignedStudents.length === 0
   ) {
     notFound();
   }

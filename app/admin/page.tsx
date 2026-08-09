@@ -9,10 +9,10 @@ import SeedButton from "./SeedButton";
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; seeded?: string }>;
+  searchParams: Promise<{ error?: string; seeded?: string; added?: string; updated?: string; deleted?: string }>;
 }) {
   const admin = await isAdmin();
-  const { error, seeded } = await searchParams;
+  const { error, seeded, added, updated, deleted } = await searchParams;
 
   if (!admin) {
     return (
@@ -41,16 +41,40 @@ export default async function AdminPage({
   const [subjects, studentOverview, assignments] = await Promise.all([
     prisma.subject.findMany({
       orderBy: { order: "asc" },
-      include: { series: { orderBy: { order: "asc" }, include: { _count: { select: { chapters: true } } } } },
+      include: {
+        series: {
+          orderBy: { order: "asc" },
+          include: { chapters: { orderBy: { order: "asc" } } },
+        },
+      },
     }),
     getAllStudentsProgressOverview(),
-    prisma.studentSeries.findMany({ select: { studentId: true, seriesId: true } }),
+    prisma.studentChapter.findMany({ select: { studentId: true, chapterId: true } }),
   ]);
 
   const assignedByStudent = new Map<string, Set<string>>();
   for (const a of assignments) {
     if (!assignedByStudent.has(a.studentId)) assignedByStudent.set(a.studentId, new Set());
-    assignedByStudent.get(a.studentId)!.add(a.seriesId);
+    assignedByStudent.get(a.studentId)!.add(a.chapterId);
+  }
+
+  /** 이 학생에게 배정된 챕터를 시리즈별로 묶어서 "777초등영문법(0권, 3권) · 리더스뱅크2(전체)" 형태로 보여줌 */
+  function assignmentSummary(studentId: string): string {
+    const assigned = assignedByStudent.get(studentId);
+    if (!assigned || assigned.size === 0) return "배정된 교재 없음";
+    const parts: string[] = [];
+    for (const subject of subjects) {
+      for (const se of subject.series) {
+        const assignedChapters = se.chapters.filter((ch) => assigned.has(ch.id));
+        if (assignedChapters.length === 0) continue;
+        if (assignedChapters.length === se.chapters.length) {
+          parts.push(`${se.title}(전체)`);
+        } else {
+          parts.push(`${se.title}(${assignedChapters.map((c) => c.title).join(", ")})`);
+        }
+      }
+    }
+    return parts.join(" · ");
   }
 
   return (
@@ -70,6 +94,21 @@ export default async function AdminPage({
       {seeded && (
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           ✅ 초기 데이터를 넣었어요! 아래에서 과목/시리즈/학생을 확인해보세요.
+        </p>
+      )}
+      {added && (
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          ✅ {added}님을 학생으로 추가했어요.
+        </p>
+      )}
+      {updated && (
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          ✅ {updated}님 정보를 저장했어요.
+        </p>
+      )}
+      {deleted && (
+        <p className="rounded-lg bg-zinc-100 px-4 py-3 text-sm text-zinc-600">
+          🗑 {deleted}님을 삭제했어요.
         </p>
       )}
 
@@ -110,29 +149,32 @@ export default async function AdminPage({
 
       {/* 학생 관리 */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-bold text-zinc-800">🧒 학생 관리 (아이디 · 이름 · 학년 · 학교 · 진도)</h2>
+        <h2 className="font-bold text-zinc-800">🧒 학생 관리 (아이디 · 이름 · 학년 · 학교 · 배정 교재 · 진도)</h2>
         <div className="flex flex-col gap-2">
           {studentOverview.map(({ student: s, subjects: subjProgress }) => (
             <details key={s.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
-              <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2">
-                <span className="font-medium text-zinc-800">
-                  {s.name}
-                  <span className="ml-2 text-xs text-zinc-400">
-                    아이디 {s.loginId}
-                    {s.grade ? ` · ${s.grade}` : ""}
-                    {s.school ? ` · ${s.school}` : ""}
-                  </span>
-                </span>
-                <span className="flex gap-2">
-                  {subjProgress.map((sp) => (
-                    <span
-                      key={sp.key}
-                      className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600"
-                    >
-                      {sp.icon} {sp.watched}/{sp.total}
+              <summary className="flex cursor-pointer flex-col gap-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium text-zinc-800">
+                    {s.name}
+                    <span className="ml-2 text-xs text-zinc-400">
+                      아이디 {s.loginId}
+                      {s.grade ? ` · ${s.grade}` : ""}
+                      {s.school ? ` · ${s.school}` : ""}
                     </span>
-                  ))}
-                </span>
+                  </span>
+                  <span className="flex gap-2">
+                    {subjProgress.map((sp) => (
+                      <span
+                        key={sp.key}
+                        className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600"
+                      >
+                        {sp.icon} {sp.watched}/{sp.total}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-500">📘 {assignmentSummary(s.id)}</p>
               </summary>
 
               <form
@@ -196,26 +238,39 @@ export default async function AdminPage({
 
                 <div className="mt-2 rounded-lg bg-zinc-50 p-3">
                   <p className="mb-2 text-xs font-semibold text-zinc-600">
-                    📘 배정 교재 (체크한 것만 이 학생 화면에 보여요)
+                    📘 배정 교재 (권/유닛 단위로 체크한 것만 이 학생 화면에 보여요)
                   </p>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     {subjects.map((subject) => (
                       <div key={subject.id}>
                         <p className="text-xs font-medium text-zinc-500">
                           {subject.icon} {subject.label}
                         </p>
-                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                        <div className="mt-1 flex flex-col gap-2">
                           {subject.series.map((se) => (
-                            <label key={se.id} className="flex items-center gap-1.5 text-xs text-zinc-700">
-                              <input
-                                type="checkbox"
-                                name="seriesIds"
-                                value={se.id}
-                                defaultChecked={assignedByStudent.get(s.id)?.has(se.id) ?? false}
-                                className="h-3.5 w-3.5 rounded border-zinc-300"
-                              />
-                              {se.title}
-                            </label>
+                            <div key={se.id}>
+                              <p className="text-xs text-zinc-400">{se.title}</p>
+                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                {se.chapters.map((ch) => (
+                                  <label
+                                    key={ch.id}
+                                    className="flex items-center gap-1.5 text-xs text-zinc-700"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      name="chapterIds"
+                                      value={ch.id}
+                                      defaultChecked={assignedByStudent.get(s.id)?.has(ch.id) ?? false}
+                                      className="h-3.5 w-3.5 rounded border-zinc-300"
+                                    />
+                                    {ch.title}
+                                  </label>
+                                ))}
+                                {se.chapters.length === 0 && (
+                                  <span className="text-xs text-zinc-400">챕터 없음</span>
+                                )}
+                              </div>
+                            </div>
                           ))}
                           {subject.series.length === 0 && (
                             <span className="text-xs text-zinc-400">시리즈 없음</span>
@@ -286,6 +341,9 @@ export default async function AdminPage({
               추가
             </button>
           </div>
+          <p className="text-xs text-zinc-400">
+            추가한 뒤, 목록에서 이름을 눌러 펼치면 배정 교재를 체크할 수 있어요.
+          </p>
         </form>
       </section>
     </div>

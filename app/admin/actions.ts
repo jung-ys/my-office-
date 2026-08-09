@@ -51,6 +51,7 @@ export async function createStudent(formData: FormData) {
     data: { name, loginId, grade: grade || null, school: school || null },
   });
   revalidatePath("/admin");
+  redirect(`/admin?added=${encodeURIComponent(name)}`);
 }
 
 export async function updateStudent(studentId: string, formData: FormData) {
@@ -61,32 +62,34 @@ export async function updateStudent(studentId: string, formData: FormData) {
   const school = String(formData.get("school") ?? "").trim();
   if (!name || !loginId) return;
 
-  // 체크된 시리즈 = 이 학생에게 배정할 교재 목록
-  const seriesIds = formData.getAll("seriesIds").map(String);
+  // 체크된 챕터(권/유닛) = 이 학생에게 배정할 교재 범위
+  const chapterIds = formData.getAll("chapterIds").map(String);
 
   await prisma.$transaction([
     prisma.student.update({
       where: { id: studentId },
       data: { name, loginId, grade: grade || null, school: school || null },
     }),
-    prisma.studentSeries.deleteMany({
-      where: { studentId, ...(seriesIds.length > 0 ? { seriesId: { notIn: seriesIds } } : {}) },
+    prisma.studentChapter.deleteMany({
+      where: { studentId, ...(chapterIds.length > 0 ? { chapterId: { notIn: chapterIds } } : {}) },
     }),
-    ...seriesIds.map((seriesId) =>
-      prisma.studentSeries.upsert({
-        where: { studentId_seriesId: { studentId, seriesId } },
-        create: { studentId, seriesId },
+    ...chapterIds.map((chapterId) =>
+      prisma.studentChapter.upsert({
+        where: { studentId_chapterId: { studentId, chapterId } },
+        create: { studentId, chapterId },
         update: {},
       })
     ),
   ]);
   revalidatePath("/admin");
+  redirect(`/admin?updated=${encodeURIComponent(name)}`);
 }
 
 export async function deleteStudent(studentId: string) {
   await requireAdmin();
-  await prisma.student.delete({ where: { id: studentId } });
+  const student = await prisma.student.delete({ where: { id: studentId } });
   revalidatePath("/admin");
+  redirect(`/admin?deleted=${encodeURIComponent(student.name)}`);
 }
 
 // ---- 시리즈 관리 ----

@@ -15,19 +15,15 @@ export default async function SeriesChapterListPage({
   const { subjectKey, seriesId } = await params;
   const series = await prisma.series.findUnique({
     where: { id: seriesId },
-    include: {
-      subject: true,
-      assignedStudents: { where: { studentId: student.id } },
-    },
+    include: { subject: true },
   });
-  if (!series || series.subject.key !== subjectKey || series.assignedStudents.length === 0) {
-    notFound();
-  }
+  if (!series || series.subject.key !== subjectKey) notFound();
 
   const chapters = await prisma.chapter.findMany({
-    where: { seriesId },
+    where: { seriesId, assignedStudents: { some: { studentId: student.id } } },
     orderBy: { order: "asc" },
   });
+  if (chapters.length === 0) notFound();
 
   const summary = await getSeriesProgressSummary(seriesId, student.id);
   const byChapterId = Object.fromEntries(summary.chapters.map((c) => [c.id, c]));

@@ -15,26 +15,26 @@ datasource db {
 
 // 학생: 아이디 + 이름을 직접 입력해서 로그인 (둘 다 맞아야 입장)
 model Student {
-  id             String          @id @default(cuid())
-  loginId        String          @unique // 학생이 입력하는 "아이디"
-  name           String
-  grade          String? // 학년 (예: "초5", "중2"), 선택 사항
-  school         String? // 학교 이름, 선택 사항
-  createdAt      DateTime        @default(now())
-  progress       Progress[]
-  assignedSeries StudentSeries[] // 관리자가 배정한 교재(시리즈) 목록
+  id               String           @id @default(cuid())
+  loginId          String           @unique // 학생이 입력하는 "아이디"
+  name             String
+  grade            String? // 학년 (예: "초5", "중2"), 선택 사항
+  school           String? // 학교 이름, 선택 사항
+  createdAt        DateTime         @default(now())
+  progress         Progress[]
+  assignedChapters StudentChapter[] // 관리자가 배정한 챕터(권/유닛) 목록
 }
 
-// 학생 ↔ 시리즈 배정: 관리자가 "이 학생은 이 교재만 보게" 지정
-model StudentSeries {
+// 학생 ↔ 챕터 배정: 관리자가 "이 학생은 이 권/유닛만 보게" 지정 (시리즈보다 세밀한 단위)
+model StudentChapter {
   id        String   @id @default(cuid())
   studentId String
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  seriesId  String
-  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  chapterId String
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  @@unique([studentId, seriesId])
+  @@unique([studentId, chapterId])
 }
 
 // 과목: "문법 영상" / "독해 지문 영상" 두 가지. 관리자가 추가로 늘릴 수도 있음
@@ -49,23 +49,23 @@ model Subject {
 
 // 시리즈: 교재 한 세트 (예: "777 초등영문법", "리더스뱅크2")
 model Series {
-  id               String          @id @default(cuid())
-  subjectId        String
-  subject          Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  title            String
-  order            Int             @default(0)
-  chapters         Chapter[]
-  assignedStudents StudentSeries[]
+  id        String    @id @default(cuid())
+  subjectId String
+  subject   Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int       @default(0)
+  chapters  Chapter[]
 }
 
 // 챕터: 시리즈 안의 권/챕터/유닛 (예: "3권", "CH01 be동사와 인칭대명사", "Unit 01")
 model Chapter {
-  id       String  @id @default(cuid())
-  seriesId String
-  series   Series  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  title    String
-  order    Int     @default(0)
-  videos   Video[]
+  id               String           @id @default(cuid())
+  seriesId         String
+  series           Series           @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  title            String
+  order            Int              @default(0)
+  videos           Video[]
+  assignedStudents StudentChapter[]
 }
 
 // 영상: 챕터에 속한 실제 강의 하나

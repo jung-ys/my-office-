@@ -18,18 +18,14 @@ export default async function VideoPlayerPage({
     include: {
       chapter: {
         include: {
-          series: {
-            include: {
-              subject: true,
-              assignedStudents: { where: { studentId: student.id } },
-            },
-          },
+          series: { include: { subject: true } },
+          assignedStudents: { where: { studentId: student.id } },
         },
       },
       progress: { where: { studentId: student.id } },
     },
   });
-  if (!video || video.chapter.series.assignedStudents.length === 0) notFound();
+  if (!video || video.chapter.assignedStudents.length === 0) notFound();
 
   const siblings = await prisma.video.findMany({
     where: { chapterId: video.chapterId },

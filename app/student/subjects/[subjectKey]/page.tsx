@@ -17,7 +17,10 @@ export default async function SubjectSeriesListPage({
   if (!subject) notFound();
 
   const seriesList = await prisma.series.findMany({
-    where: { subjectId: subject.id, assignedStudents: { some: { studentId: student.id } } },
+    where: {
+      subjectId: subject.id,
+      chapters: { some: { assignedStudents: { some: { studentId: student.id } } } },
+    },
     orderBy: { order: "asc" },
   });
 

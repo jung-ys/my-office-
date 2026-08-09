@@ -41,10 +41,10 @@ export async function getChapterVideosWithProgress(
   }));
 }
 
-/** 시리즈 하나(챕터 전체)의 시청 완료/전체 강의 수를 계산합니다. */
+/** 시리즈 하나에서, 학생에게 배정된 챕터만의 시청 완료/전체 강의 수를 계산합니다. */
 export async function getSeriesProgressSummary(seriesId: string, studentId: string) {
   const chapters = await prisma.chapter.findMany({
-    where: { seriesId },
+    where: { seriesId, assignedStudents: { some: { studentId } } },
     orderBy: { order: "asc" },
     include: { videos: { include: { progress: { where: { studentId } } } } },
   });
@@ -68,13 +68,16 @@ export async function getSeriesProgressSummary(seriesId: string, studentId: stri
   return { total, watched, chapters: perChapter };
 }
 
-/** 과목 하나(모든 시리즈)의 시청 완료/전체 강의 수를 계산합니다. */
+/** 과목 하나에서, 학생에게 배정된 챕터만의 시청 완료/전체 강의 수를 계산합니다. */
 export async function getSubjectProgressSummary(subjectId: string, studentId: string) {
   const series = await prisma.series.findMany({
-    where: { subjectId },
+    where: { subjectId, chapters: { some: { assignedStudents: { some: { studentId } } } } },
     orderBy: { order: "asc" },
     include: {
-      chapters: { include: { videos: { include: { progress: { where: { studentId } } } } } },
+      chapters: {
+        where: { assignedStudents: { some: { studentId } } },
+        include: { videos: { include: { progress: { where: { studentId } } } } },
+      },
     },
   });
 
@@ -102,6 +105,7 @@ export async function getSubjectProgressSummary(subjectId: string, studentId: st
 /**
  * 관리자 페이지에서 "학생별 현재 수준(진도)"을 한눈에 보기 위한 요약.
  * 학생마다, 과목마다 "완료 강의 수 / 전체 강의 수"를 계산해서 반환합니다.
+ * (전체 커리큘럼 기준 — 배정 여부와 상관없이 지금까지 시청한 모든 기록을 보여줍니다)
  */
 export async function getAllStudentsProgressOverview() {
   const subjects = await prisma.subject.findMany({
@@ -150,7 +154,7 @@ export async function getAllStudentsProgressOverview() {
 
 /**
  * 학생이 이 과목에서 가장 최근에 시청한 영상을 기준으로,
- * 같은 시리즈 안에서 다음으로 이어볼 "오늘의 학습" 영상을 계산합니다.
+ * 같은 시리즈의 배정된 챕터 안에서 다음으로 이어볼 "오늘의 학습" 영상을 계산합니다.
  * 이 과목에서 시청 기록이 전혀 없으면 null을 반환합니다 (→ 시리즈 선택 안내).
  */
 export async function getContinueLessonForSubject(subjectId: string, studentId: string) {
@@ -168,7 +172,7 @@ export async function getContinueLessonForSubject(subjectId: string, studentId: 
 
   const seriesId = latest.video.chapter.series.id;
   const chapters = await prisma.chapter.findMany({
-    where: { seriesId },
+    where: { seriesId, assignedStudents: { some: { studentId } } },
     orderBy: { order: "asc" },
     include: {
       videos: {
@@ -192,6 +196,6 @@ export async function getContinueLessonForSubject(subjectId: string, studentId: 
       }
     }
   }
-  // 시리즈를 전부 완료한 경우
+  // 배정된 챕터를 전부 완료한 경우
   return { kind: "done" as const, seriesTitle: latest.video.chapter.series.title, seriesId };
 }
