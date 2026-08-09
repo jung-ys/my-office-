@@ -78,7 +78,6 @@ export default async function ChapterVideoListPage({
                   </p>
                   <p className="mt-0.5 text-xs text-zinc-400">
                     {v.duration ? `약 ${v.duration}분` : ""}
-                    {v.watched && v.reviewCount > 0 ? ` · 복습 ${v.reviewCount}회` : ""}
                     {!v.videoUrl && " · 준비 중"}
                   </p>
                 </div>

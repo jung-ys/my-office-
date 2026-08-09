@@ -47,7 +47,6 @@ export default async function HistoryPage() {
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                {p.reviewCount > 0 && ` · 복습 ${p.reviewCount}회`}
               </p>
             </div>
             <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">

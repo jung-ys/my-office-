@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { markReview, markWatched } from "../../actions";
+import { markWatched } from "../../actions";
 
 export default function VideoPlayer({
   videoId,
@@ -10,7 +10,6 @@ export default function VideoPlayer({
   title,
   durationMinutes,
   watched,
-  reviewCount,
   backHref,
 }: {
   videoId: string;
@@ -18,31 +17,22 @@ export default function VideoPlayer({
   title: string;
   durationMinutes: number | null;
   watched: boolean;
-  reviewCount: number;
   backHref: string;
 }) {
   const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const reviewFormRef = useRef<HTMLFormElement>(null);
   const autoSubmittedRef = useRef(false);
-  const reviewAutoSubmittedRef = useRef(false);
-  const prevReviewCountRef = useRef(reviewCount);
 
   const [elapsed, setElapsed] = useState(0);
-  const [isReviewing, setIsReviewing] = useState(false);
-  const [reviewElapsed, setReviewElapsed] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  // 복습을 시작할 때마다 값을 바꿔서 iframe을 통째로 다시 불러오게 해요.
-  // (마이박스 플레이어가 이전에 보던 위치에 멈춰있지 않고 처음부터 다시 준비되도록)
-  const [reviewKey, setReviewKey] = useState(0);
 
-  // 영상 길이(분)만큼 화면에 머물러야(=끝까지 봐야) 완료/복습 기록이 남아요.
+  // 영상 길이(분)만큼 화면에 머물러야(=끝까지 봐야) 완료 처리돼요.
   // 길이 정보가 없는 영상은 기본 90초로 대체하니, 정확한 판정을 위해 관리자 페이지에서
   // 영상 길이(분)를 꼭 입력해주세요.
   const requiredSeconds = durationMinutes ? Math.round(durationMinutes * 60) : 90;
 
-  // 최초 시청 타이머 (아직 완료 전일 때만 작동)
+  // 시청 타이머 (아직 완료 전일 때만 작동)
   useEffect(() => {
     if (watched) return;
     const timer = setInterval(() => {
@@ -63,48 +53,6 @@ export default function VideoPlayer({
     autoSubmittedRef.current = true;
     formRef.current?.requestSubmit();
   }, [watched, canComplete]);
-
-  // "복습하기"를 눌러 다시 볼 때만 작동하는 타이머. 실제로 끝까지 다시 봐야 복습 횟수가 올라가요.
-  useEffect(() => {
-    if (!isReviewing) return;
-    const timer = setInterval(() => {
-      if (!document.hidden) {
-        setReviewElapsed((s) => s + 1);
-      }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isReviewing]);
-
-  const remainingReview = Math.max(0, requiredSeconds - reviewElapsed);
-  const canCompleteReview = reviewElapsed >= requiredSeconds;
-
-  useEffect(() => {
-    if (!isReviewing || !canCompleteReview || reviewAutoSubmittedRef.current) return;
-    reviewAutoSubmittedRef.current = true;
-    reviewFormRef.current?.requestSubmit();
-  }, [isReviewing, canCompleteReview]);
-
-  // 복습 기록이 실제로 저장되면(reviewCount가 늘어나면) 복습 모드를 초기화해요.
-  useEffect(() => {
-    if (reviewCount !== prevReviewCountRef.current) {
-      prevReviewCountRef.current = reviewCount;
-      setIsReviewing(false);
-      setReviewElapsed(0);
-      reviewAutoSubmittedRef.current = false;
-    }
-  }, [reviewCount]);
-
-  function startReview() {
-    setIsReviewing(true);
-    setReviewElapsed(0);
-    reviewAutoSubmittedRef.current = false;
-    setReviewKey((k) => k + 1);
-  }
-
-  function cancelReview() {
-    setIsReviewing(false);
-    setReviewElapsed(0);
-  }
 
   // 전체화면 상태를 추적해서 버튼이 "들어가기/나가기"를 정확히 보여줘요.
   // (esc 키가 없는 태블릿/폰에서도 버튼만으로 전체화면을 빠져나갈 수 있도록)
@@ -158,7 +106,6 @@ export default function VideoPlayer({
       <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-black">
         <div className="aspect-video w-full">
           <iframe
-            key={reviewKey}
             ref={iframeRef}
             src={videoUrl}
             className="h-full w-full"
@@ -190,46 +137,7 @@ export default function VideoPlayer({
 
       <div className="flex flex-col items-center gap-3">
         {watched ? (
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm font-medium text-emerald-600">
-              ✓ 시청 완료 {reviewCount ? `· 복습 ${reviewCount}회` : ""}
-            </p>
-            {isReviewing ? (
-              <form
-                ref={reviewFormRef}
-                action={markReview.bind(null, videoId)}
-                className="flex flex-col items-center gap-2"
-              >
-                <button
-                  disabled={!canCompleteReview}
-                  className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-                >
-                  {canCompleteReview
-                    ? "복습 기록하기"
-                    : `복습 중... (${remainingReview}초 후 자동 기록)`}
-                </button>
-                <p className="max-w-xs text-center text-xs font-medium text-amber-600">
-                  ⚠️ 위 영상의 재생 버튼을 직접 눌러서 처음부터 다시 봐주세요. (자동 재생은 지원되지
-                  않아요)
-                </p>
-                <button
-                  type="button"
-                  onClick={cancelReview}
-                  className="text-xs text-zinc-400 underline"
-                >
-                  복습 취소
-                </button>
-              </form>
-            ) : (
-              <button
-                type="button"
-                onClick={startReview}
-                className="rounded-lg border border-indigo-300 px-5 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
-              >
-                🔁 복습하기
-              </button>
-            )}
-          </div>
+          <p className="text-sm font-medium text-emerald-600">✓ 학습 완료</p>
         ) : (
           <form
             ref={formRef}

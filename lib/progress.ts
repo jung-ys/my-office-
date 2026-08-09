@@ -8,7 +8,6 @@ export type VideoWithStatus = {
   videoUrl: string;
   duration: number | null;
   watched: boolean;
-  reviewCount: number;
   lastWatchedAt: Date | null;
 };
 
@@ -36,7 +35,6 @@ export async function getChapterVideosWithProgress(
     videoUrl: v.videoUrl,
     duration: v.duration,
     watched: v.progress[0]?.watched ?? false,
-    reviewCount: v.progress[0]?.reviewCount ?? 0,
     lastWatchedAt: v.progress[0]?.lastWatchedAt ?? null,
   }));
 }

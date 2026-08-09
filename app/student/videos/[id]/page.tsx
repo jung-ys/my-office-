@@ -61,7 +61,6 @@ export default async function VideoPlayerPage({
           title={video.title}
           durationMinutes={video.duration}
           watched={watched}
-          reviewCount={progress?.reviewCount ?? 0}
           backHref={chapterHref}
         />
       ) : (
