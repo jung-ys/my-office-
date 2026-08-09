@@ -25,6 +25,7 @@
     --muted-bg:#f0f0f4;
     --muted-text:#8b8fa3;
     --shadow: 0 1px 2px rgba(20,22,40,.04), 0 6px 20px rgba(20,22,40,.05);
+    --overlay: rgba(20,22,32,.45);
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -42,6 +43,7 @@
       --muted-bg:#23242e;
       --muted-text:#6d7086;
       --shadow: 0 1px 2px rgba(0,0,0,.2), 0 8px 24px rgba(0,0,0,.35);
+      --overlay: rgba(0,0,0,.6);
     }
   }
   *{ box-sizing:border-box; }
@@ -65,6 +67,11 @@
   .who button{
     border:none; background:none; color:var(--accent); font-size:.85rem;
     cursor:pointer; padding:2px 0; text-decoration:underline; text-underline-offset:2px;
+  }
+
+  button{ font-family:inherit; }
+  button:focus-visible, input:focus-visible, a:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
   }
 
   /* 로그인 화면 */
@@ -94,8 +101,10 @@
   }
   .add-student-form input{
     border:1px solid var(--border); background:var(--surface); color:var(--text);
-    border-radius:10px; padding:8px 10px; font-size:.9rem; width:160px;
+    border-radius:10px; padding:8px 10px; font-size:.9rem;
   }
+  .add-student-form input#newStudentInput{ width:140px; }
+  .add-student-form input#newStudentPin{ width:90px; text-align:center; letter-spacing:.2em; }
   .add-student-form button{
     border:none; border-radius:10px; padding:8px 14px; font-size:.85rem; font-weight:700;
     cursor:pointer;
@@ -103,9 +112,32 @@
   .add-student-form button#confirmAddStudentBtn{ background:var(--accent); color:#fff; }
   .add-student-form button#cancelAddStudentBtn{ background:var(--muted-bg); color:var(--text-dim); }
   .add-student-hint{
-    max-width:340px; margin:12px auto 0; font-size:.72rem; color:var(--muted-text); line-height:1.5;
+    max-width:360px; margin:12px auto 0; font-size:.72rem; color:var(--muted-text); line-height:1.5;
   }
   .add-student-hint code{ background:var(--muted-bg); padding:1px 5px; border-radius:5px; }
+
+  /* PIN 입력 모달 */
+  .modal-overlay{
+    position:fixed; inset:0; background:var(--overlay); display:flex;
+    align-items:center; justify-content:center; padding:16px; z-index:50;
+  }
+  .modal-card{
+    width:100%; max-width:280px; background:var(--surface); border-radius:18px;
+    padding:24px; box-shadow:var(--shadow); text-align:center;
+  }
+  .modal-card h3{ margin:0 0 4px; font-size:1.05rem; }
+  .modal-card p{ margin:0 0 16px; color:var(--text-dim); font-size:.85rem; }
+  .modal-card input{
+    width:100%; border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+    border-radius:12px; padding:12px; font-size:1.5rem; letter-spacing:.5em; text-align:center;
+    margin-bottom:14px;
+  }
+  .modal-actions{ display:flex; gap:8px; }
+  .modal-actions button{
+    flex:1; border:none; border-radius:10px; padding:10px; font-size:.88rem; font-weight:700; cursor:pointer;
+  }
+  .modal-actions button.cancel{ background:var(--muted-bg); color:var(--text-dim); }
+  .modal-actions button.confirm{ background:var(--accent); color:#fff; }
 
   /* 과목(문법/독해) 탭 */
   .tabs{ display:flex; gap:8px; margin-bottom:16px; }
@@ -118,6 +150,19 @@
   .tab-btn.active{ border-color:var(--accent); background:var(--accent-dim); color:var(--accent-text); }
   .tab-btn.active small{ color:var(--accent-text); opacity:.75; }
 
+  /* 뒤로가기 + 현재 위치 */
+  .nav-header{
+    display:flex; align-items:center; gap:10px; margin-bottom:12px; min-height:32px;
+  }
+  .back-btn{
+    border:1px solid var(--border); background:var(--surface); color:var(--text);
+    border-radius:10px; padding:6px 12px; font-size:.82rem; font-weight:700; cursor:pointer;
+    flex-shrink:0;
+  }
+  .back-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .breadcrumb{ font-size:.9rem; font-weight:700; color:var(--text); }
+  .breadcrumb .dim{ color:var(--text-dim); font-weight:500; }
+
   .summary{
     display:flex; align-items:center; justify-content:center; gap:8px;
     background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
@@ -126,35 +171,27 @@
   .summary b{ color:var(--text); }
   .summary .dot{ opacity:.5; }
 
-  details.chapter{
-    background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    margin-bottom:10px; box-shadow:var(--shadow); overflow:hidden;
+  /* 시리즈 / 챕터 목록 (클릭하면 다음 단계로 이동) */
+  .nav-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    width:100%; text-align:left; background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:16px; margin-bottom:10px; cursor:pointer;
+    box-shadow:var(--shadow); font-size:.95rem; font-weight:700; color:var(--text);
   }
-  details.chapter > summary{
-    list-style:none; cursor:pointer; padding:14px 16px; font-weight:700;
-    font-size:.95rem; display:flex; justify-content:space-between; align-items:center; gap:10px;
-  }
-  details.chapter > summary::-webkit-details-marker{ display:none; }
-  details.chapter > summary .cnt{ font-weight:500; color:var(--text-dim); font-size:.78rem; white-space:nowrap; }
-  details.chapter > summary::before{
-    content:"▸"; color:var(--accent); font-size:.8rem; transition:transform .15s;
-  }
-  details.chapter[open] > summary::before{ transform:rotate(90deg); }
+  .nav-row:hover{ border-color:var(--accent); background:var(--accent-dim); }
+  .nav-row .meta{ font-weight:500; color:var(--text-dim); font-size:.78rem; margin-top:3px; }
+  .nav-row .chev{ color:var(--accent); font-size:1rem; flex-shrink:0; }
 
-  .lesson-list{ border-top:1px solid var(--border); }
+  .lesson-list{ display:flex; flex-direction:column; gap:8px; }
   .lesson{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:12px 16px; border-bottom:1px solid var(--border);
+    padding:13px 16px; border:1px solid var(--border); border-radius:12px;
+    background:var(--surface); box-shadow:var(--shadow);
   }
-  .lesson:last-child{ border-bottom:none; }
   .lesson-title{ font-size:.9rem; }
   .lesson-title .page{
     display:inline-block; margin-left:6px; font-size:.72rem; color:var(--muted-text);
     background:var(--muted-bg); border-radius:6px; padding:1px 6px;
-  }
-  .lesson-title .grammar-tag{
-    display:inline-block; margin-right:6px; font-size:.7rem; font-weight:700;
-    color:var(--accent-text); background:var(--accent-dim); border-radius:6px; padding:1px 6px;
   }
   .watch-btn{
     flex-shrink:0; text-decoration:none; font-size:.82rem; font-weight:700;
@@ -168,6 +205,10 @@
   }
 
   footer.note{ text-align:center; color:var(--muted-text); font-size:.75rem; margin-top:30px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .name-btn, .tab-btn, .watch-btn, .nav-row, .add-student-toggle{ transition:none; }
+  }
 
   #mainScreen{ display:none; }
 </style>
@@ -184,31 +225,46 @@
     </div>
   </header>
 
-  <!-- 로그인 화면: 학생 이름을 눌러 입장 -->
+  <!-- 로그인 화면: 학생 이름을 눌러 PIN을 입력하고 입장 -->
   <div id="loginScreen">
     <h2>안녕하세요 👋</h2>
-    <p>내 이름을 눌러서 들어가세요</p>
+    <p>내 이름을 누르고 비밀번호(4자리)를 입력하세요</p>
     <div class="name-grid" id="nameGrid"></div>
 
     <div class="add-student-area">
       <button type="button" id="showAddStudentBtn" class="add-student-toggle">+ 새 학생 등록</button>
       <div id="addStudentForm" class="add-student-form" style="display:none;">
-        <input type="text" id="newStudentInput" placeholder="학생 이름 입력" maxlength="20">
+        <input type="text" id="newStudentInput" placeholder="학생 이름" maxlength="20">
+        <input type="text" id="newStudentPin" placeholder="비밀번호 4자리" inputmode="numeric" maxlength="4">
         <button type="button" id="confirmAddStudentBtn">등록</button>
         <button type="button" id="cancelAddStudentBtn">취소</button>
       </div>
-      <p class="add-student-hint">여기서 등록한 학생은 <b>이 기기(브라우저)</b>에서만 보여요. 모든 컴퓨터·휴대폰에서 항상 보이게 하려면 파일 위쪽 <code>STUDENTS</code> 목록에도 이름을 추가해주세요.</p>
+      <p class="add-student-hint">여기서 등록한 학생은 <b>이 기기(브라우저)</b>에서만 보여요. 모든 컴퓨터·휴대폰에서 항상 보이게 하려면 파일 위쪽 <code>STUDENTS</code> 목록에도 이름과 비밀번호를 추가해주세요.</p>
     </div>
   </div>
 
-  <!-- 로그인 후 메인 화면: 문법/독해 탭 + 강의 목록 -->
+  <!-- 로그인 후 메인 화면: 문법/독해 탭 → 시리즈 → 챕터 → 강의 -->
   <div id="mainScreen">
     <div class="tabs" id="tabBox"></div>
+    <div class="nav-header" id="navHeader"></div>
     <div class="summary" id="summaryBox"></div>
-    <div id="chapterBox"></div>
+    <div id="contentBox"></div>
   </div>
 
   <footer class="note">영상 링크가 없는 강의는 “준비 중”으로 표시돼요. 선생님이 링크를 채워주시면 자동으로 “▶ 영상 보기” 버튼이 생겨요.</footer>
+</div>
+
+<!-- PIN 입력 모달 -->
+<div id="pinModal" class="modal-overlay" style="display:none;">
+  <div class="modal-card">
+    <h3 id="pinModalName"></h3>
+    <p>비밀번호(4자리)를 입력해주세요</p>
+    <input type="text" id="pinInput" inputmode="numeric" maxlength="4" placeholder="••••">
+    <div class="modal-actions">
+      <button type="button" class="cancel" id="pinCancelBtn">취소</button>
+      <button type="button" class="confirm" id="pinConfirmBtn">입장하기</button>
+    </div>
+  </div>
 </div>
 
 
@@ -221,236 +277,250 @@
    [1] 사이트 제목(학원/강좌 이름) 바꾸기
        → 바로 아래 SITE_TITLE 의 따옴표 안 글자만 바꾸세요.
 
-   [2] 로그인할 학생 이름 바꾸기 / 추가 / 삭제
-       → STUDENTS 배열 안에 "이름" 을 쉼표(,)로 구분해서 넣어주세요.
-         이름을 추가하려면:   "홍길동",
-         이름을 지우려면: 그 줄을 통째로 지우면 됩니다.
+   [2] 로그인할 학생 이름 · 비밀번호 바꾸기 / 추가 / 삭제
+       → STUDENTS 배열 안에 { name: "이름", pin: "1234" } 형태로 넣어주세요.
+         pin은 학생이 로그인할 때 입력하는 4자리 숫자예요.
+         ⚠️ 지금 들어있는 비밀번호(1001, 1002...)는 예시입니다.
+            실제로 쓰기 전에 학생마다 다른 번호로 꼭 바꿔주세요!
 
-   [3] 강의(챕터/소단원) 추가 · 수정 · 삭제
-       → 아래 SUBJECTS 안에 "문법"과 "독해" 두 과목이 있고,
-         각 과목 안에는 chapters(챕터=대단원) 배열이 있습니다.
-         각 챕터는 { title: "챕터 이름", lessons: [ ... ] } 형태이고,
-         lessons 안에 강의(소단원)를 하나씩 아래처럼 넣으면 됩니다:
+   [3] 강의 추가 · 수정 · 삭제
+       → SUBJECTS(문법/독해) → series(교재 시리즈, 예: 777초등영문법) →
+         chapters(챕터/권/유닛) → lessons(실제 강의) 순서로 4단계 구조예요.
+         학생 화면에서는: 과목 선택 → 시리즈 선택 → 챕터 선택 → 강의(영상) 순서로 들어갑니다.
 
+         lessons 안에 강의를 하나씩 아래처럼 넣으면 됩니다:
            { title: "1강. be동사란 무엇인가", page: "p.10", url: "" }
 
          - title : 강의 제목 (필수)
-         - page  : 교재 페이지 (선택, 없으면 그냥 "" 로 두거나 그 줄을 지워도 됨)
+         - page  : 교재 페이지 (선택, 없으면 "" 로 두거나 그 줄을 지워도 됨)
          - url   : 영상 링크 (선택). 네이버 마이박스나 유튜브 등 링크를
                    따옴표 안에 붙여넣으면 자동으로 "▶ 영상 보기" 버튼이 생깁니다.
                    비워두면( "" ) "준비 중"으로 표시됩니다.
 
-       ※ 새 강의를 추가할 때는 바로 위/아래 줄의 { ... } 형태를 그대로
-         복사해서 title/page/url 안의 내용만 바꾸면 안전합니다.
-         (중괄호 { }, 쉼표 , 는 지우지 않도록 주의해주세요)
+       ※ 새 강의/챕터/시리즈를 추가할 때는 바로 위/아래의 { ... } 형태를
+         그대로 복사해서 안의 내용만 바꾸면 안전합니다.
+         (중괄호 { }, 대괄호 [ ], 쉼표 , 는 지우지 않도록 주의해주세요)
    ===================================================================== */
 
   // ---------- [1] 페이지 제목 ----------
   const SITE_TITLE = "삼성영어 셀레나 삼양캠퍼스";
 
-  // ---------- [2] 로그인할 학생 이름 목록 (기본 명단) ----------
-  //  여기 적힌 이름은 모든 기기(컴퓨터/휴대폰)에서 항상 보입니다.
+  // ---------- [2] 로그인할 학생 이름 · 비밀번호 (기본 명단) ----------
+  //  여기 적힌 학생은 모든 기기(컴퓨터/휴대폰)에서 항상 보입니다.
   //  수업 중 새로 등록하는 학생은 아래쪽 "+ 새 학생 등록" 버튼으로도
-  //  추가할 수 있어요 (다만 그 버튼으로 추가한 이름은 등록한 그 기기의
+  //  추가할 수 있어요 (다만 그 버튼으로 추가한 학생은 등록한 그 기기의
   //  브라우저에만 저장돼요). 계속 모든 기기에 남기고 싶은 학생은
-  //  이 목록에 이름을 직접 추가해주는 게 가장 확실합니다.
+  //  이 목록에 직접 추가해주는 게 가장 확실합니다.
   const STUDENTS = [
-    "김라이", "강승현", "김효진", "오지혜", "이시은",
-    "손유찬", "김아영", "박서은", "양정후", "박승빈", "차유준"
+    { name: "김라이", pin: "1001" },
+    { name: "강승현", pin: "1002" },
+    { name: "김효진", pin: "1003" },
+    { name: "오지혜", pin: "1004" },
+    { name: "이시은", pin: "1005" },
+    { name: "손유찬", pin: "1006" },
+    { name: "김아영", pin: "1007" },
+    { name: "박서은", pin: "1008" },
+    { name: "양정후", pin: "1009" },
+    { name: "박승빈", pin: "1010" },
+    { name: "차유준", pin: "1011" }
   ];
 
-  // ---------- [3] 과목별 강의 목록 ----------
+  // ---------- [3] 과목 → 시리즈(교재) → 챕터 → 강의 ----------
   const SUBJECTS = [
     {
       key: "grammar",
       label: "문법 영상",
       icon: "📖",
-      chapters: [
+      series: [
         // ================= 777 초등영문법 시리즈 (0권 ~ 6권) =================
-        { title: "777 초등영문법 0권", lessons: [
-          { title: "01. 명사! 모든 것들의 이름", url: "" },
-          { title: "02. 강아지가 한 마리면 a dog, 여러 마리면 dogs", url: "" },
-          { title: "03. 명사의 복수형", url: "" },
-          { title: "04. 셀 수 없는 명사", url: "" },
-          { title: "05. 주격 대명사 I, We, You", url: "" },
-          { title: "06. 주격 대명사 He, She, They, It", url: "" },
-          { title: "07. 목적격 대명사", url: "" },
-          { title: "08. 소유격 대명사", url: "" },
-          { title: "09. 지시대명사", url: "" },
-          { title: "10. be동사 '(~이)다'", url: "" },
-          { title: "11. be동사 '(~에) 있다'", url: "" },
-          { title: "12. be동사의 부정문", url: "" },
-          { title: "13. be동사로 묻고 답하기", url: "" },
-          { title: "14. 일반동사", url: "" },
-          { title: "15. 일반동사의 부정문", url: "" }
-        ]},
-        { title: "777 초등영문법 1권", lessons: [
-          { title: "01. 문장의 순서", url: "" },
-          { title: "02. 명사! 모든 것들의 이름", url: "" },
-          { title: "03. 셀 수 없는 명사", url: "" },
-          { title: "04. 셀 수 있는 명사의 복수형", url: "" },
-          { title: "05. 관사! 명사의 짝꿍", url: "" },
-          { title: "06. 인칭대명사", url: "" },
-          { title: "07. 지시대명사", url: "" },
-          { title: "08. be동사", url: "" },
-          { title: "09. 일반동사의 현재형", url: "" },
-          { title: "10. 일반동사의 3인칭 단수형", url: "" },
-          { title: "11. be동사의 부정문", url: "" },
-          { title: "12. 일반동사의 부정문", url: "" },
-          { title: "13. be동사로 묻고 답하기", url: "" },
-          { title: "14. 일반동사로 묻고 답하기", url: "" },
-          { title: "15. 의문사로 의문문 만들기", url: "" }
-        ]},
-        { title: "777 초등영문법 2권", lessons: [
-          { title: "01. 동사를 돕는 조동사", url: "" },
-          { title: "02. 할 수 있어! can", url: "" },
-          { title: "03. 꼭 해야 해! must", url: "" },
-          { title: "04. be동사 과거형", url: "" },
-          { title: "05. 일반동사 과거형", url: "" },
-          { title: "06. 꾸미고 설명하는 형용사", url: "" },
-          { title: "07. 꾸미기 대장, 부사", url: "" },
-          { title: "08. '해라!' 명령문", url: "" },
-          { title: "09. '하지 마!' 부정 명령문", url: "" },
-          { title: "10. '함께 해' 청유문", url: "" },
-          { title: "11. 숫자 나타내기", url: "" },
-          { title: "12. 비인칭주어 it", url: "" },
-          { title: "13. 시간 묻고 답하기", url: "" },
-          { title: "14. 날짜와 요일 말하기", url: "" },
-          { title: "15. 가격 묻고 답하기", url: "" }
-        ]},
-        { title: "777 초등영문법 3권", lessons: [
-          { title: "01. 명사", url: "" },
-          { title: "02. 명사를 대신하는 대명사", url: "" },
-          { title: "03. 영어의 8품사", url: "" },
-          { title: "04. 문장의 주부와 술부", url: "" },
-          { title: "05. 영어 문장의 종류", url: "" },
-          { title: "06. 과거를 나타내는 문장", url: "" },
-          { title: "07. 일반동사의 불규칙 과거형", url: "" },
-          { title: "08. 현재진행형", url: "" },
-          { title: "09. 과거진행형", url: "" },
-          { title: "10. 미래시제 will과 be going to", url: "" },
-          { title: "11. 형용사의 쓰임", url: "" },
-          { title: "12. 2형식 문장과 감각동사", url: "" },
-          { title: "13. 꾸며 주기 좋아하는 부사", url: "" },
-          { title: "14. 비교급 문장", url: "" },
-          { title: "15. 최상급 문장", url: "" }
-        ]},
-        { title: "777 초등영문법 4권", lessons: [
-          { title: "01. 회화에 잘 쓰이는 조동사 Can/Could", url: "" },
-          { title: "02. 회화에 잘 쓰이는 조동사 Will/Would", url: "" },
-          { title: "03. 회화에 잘 쓰이는 조동사 Shall", url: "" },
-          { title: "04. 회화에 잘 쓰이는 조동사 May", url: "" },
-          { title: "05. 회화에 잘 쓰이는 조동사 Must/Have to", url: "" },
-          { title: "06. many, much, a lot of", url: "" },
-          { title: "07. (a) few, (a) little", url: "" },
-          { title: "08. some, any", url: "" },
-          { title: "09. 숫자 묻고 답하기", url: "" },
-          { title: "10. 가격과 양, 거리 묻고 답하기", url: "" },
-          { title: "11. 문장을 이어주는 접속사", url: "" },
-          { title: "12. 시간의 전치사", url: "" },
-          { title: "13. 장소의 전치사", url: "" },
-          { title: "14. 방향의 전치사", url: "" },
-          { title: "15. There is ... / There are ...", url: "" }
-        ]},
-        { title: "777 초등영문법 5권", lessons: [
-          { title: "01. 문장의 5형식", url: "" },
-          { title: "02. 2형식 문장과 감각동사", url: "" },
-          { title: "03. 4형식 문장 → 3형식 문장", url: "" },
-          { title: "04. 5형식 문장", url: "" },
-          { title: "05. 부가의문문", url: "" },
-          { title: "06. 현재분사와 과거분사", url: "" },
-          { title: "07. 수동태 만들기", url: "" },
-          { title: "08. 수동태의 부정문과 의문문", url: "" },
-          { title: "09. 시간의 접속사 when / after / before", url: "" },
-          { title: "10. 기타 접속사 because / if", url: "" },
-          { title: "11. When으로 묻고 시간 전치사로 답하기", url: "" },
-          { title: "12. Where로 묻고 장소 전치사로 답하기", url: "" },
-          { title: "13. 접속부사와 접속사 as", url: "" },
-          { title: "14. 전치사 마무리하기", url: "" },
-          { title: "15. 명령문과 and / or", url: "" }
-        ]},
-        { title: "777 초등영문법 6권", lessons: [
-          { title: "01. 현재완료시제", url: "" },
-          { title: "02. 현재완료시제 용법 '완료, 계속'", url: "" },
-          { title: "03. 현재완료시제 용법 '결과, 경험'", url: "" },
-          { title: "04. 현재완료시제 의문문", url: "" },
-          { title: "05. 현재완료시제와 과거시제의 비교", url: "" },
-          { title: "06. 동명사의 역할과 동명사 만들기", url: "" },
-          { title: "07. 동명사와 함께 쓰는 동사들", url: "" },
-          { title: "08. to부정사의 역할과 to부정사 만들기", url: "" },
-          { title: "09. to부정사의 용법 - 명사, 형용사, 부사", url: "" },
-          { title: "10. to부정사와 함께 쓰는 동사들", url: "" },
-          { title: "11. 관계대명사", url: "" },
-          { title: "12. 관계대명사 '주격'", url: "" },
-          { title: "13. 관계대명사 '목적격'", url: "" },
-          { title: "14. 주의해야 할 관계대명사 용법과 what", url: "" },
-          { title: "15. 관계부사", url: "" }
+        { title: "777 초등영문법", chapters: [
+          { title: "0권", lessons: [
+            { title: "01. 명사! 모든 것들의 이름", url: "" },
+            { title: "02. 강아지가 한 마리면 a dog, 여러 마리면 dogs", url: "" },
+            { title: "03. 명사의 복수형", url: "" },
+            { title: "04. 셀 수 없는 명사", url: "" },
+            { title: "05. 주격 대명사 I, We, You", url: "" },
+            { title: "06. 주격 대명사 He, She, They, It", url: "" },
+            { title: "07. 목적격 대명사", url: "" },
+            { title: "08. 소유격 대명사", url: "" },
+            { title: "09. 지시대명사", url: "" },
+            { title: "10. be동사 '(~이)다'", url: "" },
+            { title: "11. be동사 '(~에) 있다'", url: "" },
+            { title: "12. be동사의 부정문", url: "" },
+            { title: "13. be동사로 묻고 답하기", url: "" },
+            { title: "14. 일반동사", url: "" },
+            { title: "15. 일반동사의 부정문", url: "" }
+          ]},
+          { title: "1권", lessons: [
+            { title: "01. 문장의 순서", url: "" },
+            { title: "02. 명사! 모든 것들의 이름", url: "" },
+            { title: "03. 셀 수 없는 명사", url: "" },
+            { title: "04. 셀 수 있는 명사의 복수형", url: "" },
+            { title: "05. 관사! 명사의 짝꿍", url: "" },
+            { title: "06. 인칭대명사", url: "" },
+            { title: "07. 지시대명사", url: "" },
+            { title: "08. be동사", url: "" },
+            { title: "09. 일반동사의 현재형", url: "" },
+            { title: "10. 일반동사의 3인칭 단수형", url: "" },
+            { title: "11. be동사의 부정문", url: "" },
+            { title: "12. 일반동사의 부정문", url: "" },
+            { title: "13. be동사로 묻고 답하기", url: "" },
+            { title: "14. 일반동사로 묻고 답하기", url: "" },
+            { title: "15. 의문사로 의문문 만들기", url: "" }
+          ]},
+          { title: "2권", lessons: [
+            { title: "01. 동사를 돕는 조동사", url: "" },
+            { title: "02. 할 수 있어! can", url: "" },
+            { title: "03. 꼭 해야 해! must", url: "" },
+            { title: "04. be동사 과거형", url: "" },
+            { title: "05. 일반동사 과거형", url: "" },
+            { title: "06. 꾸미고 설명하는 형용사", url: "" },
+            { title: "07. 꾸미기 대장, 부사", url: "" },
+            { title: "08. '해라!' 명령문", url: "" },
+            { title: "09. '하지 마!' 부정 명령문", url: "" },
+            { title: "10. '함께 해' 청유문", url: "" },
+            { title: "11. 숫자 나타내기", url: "" },
+            { title: "12. 비인칭주어 it", url: "" },
+            { title: "13. 시간 묻고 답하기", url: "" },
+            { title: "14. 날짜와 요일 말하기", url: "" },
+            { title: "15. 가격 묻고 답하기", url: "" }
+          ]},
+          { title: "3권", lessons: [
+            { title: "01. 명사", url: "" },
+            { title: "02. 명사를 대신하는 대명사", url: "" },
+            { title: "03. 영어의 8품사", url: "" },
+            { title: "04. 문장의 주부와 술부", url: "" },
+            { title: "05. 영어 문장의 종류", url: "" },
+            { title: "06. 과거를 나타내는 문장", url: "" },
+            { title: "07. 일반동사의 불규칙 과거형", url: "" },
+            { title: "08. 현재진행형", url: "" },
+            { title: "09. 과거진행형", url: "" },
+            { title: "10. 미래시제 will과 be going to", url: "" },
+            { title: "11. 형용사의 쓰임", url: "" },
+            { title: "12. 2형식 문장과 감각동사", url: "" },
+            { title: "13. 꾸며 주기 좋아하는 부사", url: "" },
+            { title: "14. 비교급 문장", url: "" },
+            { title: "15. 최상급 문장", url: "" }
+          ]},
+          { title: "4권", lessons: [
+            { title: "01. 회화에 잘 쓰이는 조동사 Can/Could", url: "" },
+            { title: "02. 회화에 잘 쓰이는 조동사 Will/Would", url: "" },
+            { title: "03. 회화에 잘 쓰이는 조동사 Shall", url: "" },
+            { title: "04. 회화에 잘 쓰이는 조동사 May", url: "" },
+            { title: "05. 회화에 잘 쓰이는 조동사 Must/Have to", url: "" },
+            { title: "06. many, much, a lot of", url: "" },
+            { title: "07. (a) few, (a) little", url: "" },
+            { title: "08. some, any", url: "" },
+            { title: "09. 숫자 묻고 답하기", url: "" },
+            { title: "10. 가격과 양, 거리 묻고 답하기", url: "" },
+            { title: "11. 문장을 이어주는 접속사", url: "" },
+            { title: "12. 시간의 전치사", url: "" },
+            { title: "13. 장소의 전치사", url: "" },
+            { title: "14. 방향의 전치사", url: "" },
+            { title: "15. There is ... / There are ...", url: "" }
+          ]},
+          { title: "5권", lessons: [
+            { title: "01. 문장의 5형식", url: "" },
+            { title: "02. 2형식 문장과 감각동사", url: "" },
+            { title: "03. 4형식 문장 → 3형식 문장", url: "" },
+            { title: "04. 5형식 문장", url: "" },
+            { title: "05. 부가의문문", url: "" },
+            { title: "06. 현재분사와 과거분사", url: "" },
+            { title: "07. 수동태 만들기", url: "" },
+            { title: "08. 수동태의 부정문과 의문문", url: "" },
+            { title: "09. 시간의 접속사 when / after / before", url: "" },
+            { title: "10. 기타 접속사 because / if", url: "" },
+            { title: "11. When으로 묻고 시간 전치사로 답하기", url: "" },
+            { title: "12. Where로 묻고 장소 전치사로 답하기", url: "" },
+            { title: "13. 접속부사와 접속사 as", url: "" },
+            { title: "14. 전치사 마무리하기", url: "" },
+            { title: "15. 명령문과 and / or", url: "" }
+          ]},
+          { title: "6권", lessons: [
+            { title: "01. 현재완료시제", url: "" },
+            { title: "02. 현재완료시제 용법 '완료, 계속'", url: "" },
+            { title: "03. 현재완료시제 용법 '결과, 경험'", url: "" },
+            { title: "04. 현재완료시제 의문문", url: "" },
+            { title: "05. 현재완료시제와 과거시제의 비교", url: "" },
+            { title: "06. 동명사의 역할과 동명사 만들기", url: "" },
+            { title: "07. 동명사와 함께 쓰는 동사들", url: "" },
+            { title: "08. to부정사의 역할과 to부정사 만들기", url: "" },
+            { title: "09. to부정사의 용법 - 명사, 형용사, 부사", url: "" },
+            { title: "10. to부정사와 함께 쓰는 동사들", url: "" },
+            { title: "11. 관계대명사", url: "" },
+            { title: "12. 관계대명사 '주격'", url: "" },
+            { title: "13. 관계대명사 '목적격'", url: "" },
+            { title: "14. 주의해야 할 관계대명사 용법과 what", url: "" },
+            { title: "15. 관계부사", url: "" }
+          ]}
         ]},
 
         // ================= 1316 중등문법1 =================
-        { title: "1316 중등문법1 · CH01 be동사와 인칭대명사", lessons: [
-          { title: "UNIT1. be동사가 있는 문장", page: "p.8", url: "" },
-          { title: "UNIT2. be동사가 있는 부정문과 의문문", page: "p.10", url: "" },
-          { title: "UNIT3. 인칭대명사", page: "p.12", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH02 일반동사", lessons: [
-          { title: "UNIT1. 일반동사의 의미와 형태", page: "p.18", url: "" },
-          { title: "UNIT2. 일반동사의 과거형", page: "p.20", url: "" },
-          { title: "UNIT3. 일반동사가 있는 부정문", page: "p.22", url: "" },
-          { title: "UNIT4. 일반동사가 있는 의문문", page: "p.24", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH03 명사와 관사", lessons: [
-          { title: "UNIT1. 셀 수 있는 명사와 셀 수 없는 명사", page: "p.30", url: "" },
-          { title: "UNIT2. 관사", page: "p.32", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH04 문장의 시제", lessons: [
-          { title: "UNIT1. 현재시제와 과거시제", page: "p.38", url: "" },
-          { title: "UNIT2. 진행형", page: "p.40", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH05 조동사", lessons: [
-          { title: "UNIT1. will", page: "p.46", url: "" },
-          { title: "UNIT2. can, may", page: "p.48", url: "" },
-          { title: "UNIT3. must, should", page: "p.50", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH06 의문사가 있는 의문문", lessons: [
-          { title: "UNIT1. 의문사 who, what, which", page: "p.56", url: "" },
-          { title: "UNIT2. 의문사 when, where, why", page: "p.58", url: "" },
-          { title: "UNIT3. 의문사 how", page: "p.60", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH07 기타 의문문 / 감탄문 / 명령문", lessons: [
-          { title: "UNIT1. 부가 의문문", page: "p.66", url: "" },
-          { title: "UNIT2. 부정 의문문, 선택 의문문", page: "p.68", url: "" },
-          { title: "UNIT3. 감탄문", page: "p.70", url: "" },
-          { title: "UNIT4. 명령문", page: "p.72", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH08 동사의 종류", lessons: [
-          { title: "UNIT1. 감각동사 + 형용사", page: "p.78", url: "" },
-          { title: "UNIT2. 수여동사 + 간접목적어 + 직접목적어", page: "p.80", url: "" },
-          { title: "UNIT3. 동사 + 목적어 + 목적격 보어", page: "p.82", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH09 to부정사와 동명사", lessons: [
-          { title: "UNIT1. to부정사의 명사적 용법", page: "p.88", url: "" },
-          { title: "UNIT2. to부정사의 형용사적 용법과 부사적 용법", page: "p.90", url: "" },
-          { title: "UNIT3. 동명사", page: "p.92", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH10 대명사", lessons: [
-          { title: "UNIT1. 재귀대명사, this/that, 비인칭 주어 it", page: "p.98", url: "" },
-          { title: "UNIT2. one, some, any", page: "p.100", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH11 형용사와 부사", lessons: [
-          { title: "UNIT1. 형용사의 역할", page: "p.106", url: "" },
-          { title: "UNIT2. 부사의 역할", page: "p.108", url: "" },
-          { title: "UNIT3. 비교 표현", page: "p.110", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH12 전치사", lessons: [
-          { title: "UNIT1. 시간의 전치사", page: "p.116", url: "" },
-          { title: "UNIT2. 장소의 전치사", page: "p.118", url: "" },
-          { title: "UNIT3. 기타 전치사", page: "p.120", url: "" }
-        ]},
-        { title: "1316 중등문법1 · CH13 접속사", lessons: [
-          { title: "UNIT1. and, but, or, so", page: "p.126", url: "" },
-          { title: "UNIT2. when, before, after, while", page: "p.128", url: "" },
-          { title: "UNIT3. because, if, that", page: "p.130", url: "" }
+        { title: "1316 중등문법1", chapters: [
+          { title: "CH01 be동사와 인칭대명사", lessons: [
+            { title: "UNIT1. be동사가 있는 문장", page: "p.8", url: "" },
+            { title: "UNIT2. be동사가 있는 부정문과 의문문", page: "p.10", url: "" },
+            { title: "UNIT3. 인칭대명사", page: "p.12", url: "" }
+          ]},
+          { title: "CH02 일반동사", lessons: [
+            { title: "UNIT1. 일반동사의 의미와 형태", page: "p.18", url: "" },
+            { title: "UNIT2. 일반동사의 과거형", page: "p.20", url: "" },
+            { title: "UNIT3. 일반동사가 있는 부정문", page: "p.22", url: "" },
+            { title: "UNIT4. 일반동사가 있는 의문문", page: "p.24", url: "" }
+          ]},
+          { title: "CH03 명사와 관사", lessons: [
+            { title: "UNIT1. 셀 수 있는 명사와 셀 수 없는 명사", page: "p.30", url: "" },
+            { title: "UNIT2. 관사", page: "p.32", url: "" }
+          ]},
+          { title: "CH04 문장의 시제", lessons: [
+            { title: "UNIT1. 현재시제와 과거시제", page: "p.38", url: "" },
+            { title: "UNIT2. 진행형", page: "p.40", url: "" }
+          ]},
+          { title: "CH05 조동사", lessons: [
+            { title: "UNIT1. will", page: "p.46", url: "" },
+            { title: "UNIT2. can, may", page: "p.48", url: "" },
+            { title: "UNIT3. must, should", page: "p.50", url: "" }
+          ]},
+          { title: "CH06 의문사가 있는 의문문", lessons: [
+            { title: "UNIT1. 의문사 who, what, which", page: "p.56", url: "" },
+            { title: "UNIT2. 의문사 when, where, why", page: "p.58", url: "" },
+            { title: "UNIT3. 의문사 how", page: "p.60", url: "" }
+          ]},
+          { title: "CH07 기타 의문문 / 감탄문 / 명령문", lessons: [
+            { title: "UNIT1. 부가 의문문", page: "p.66", url: "" },
+            { title: "UNIT2. 부정 의문문, 선택 의문문", page: "p.68", url: "" },
+            { title: "UNIT3. 감탄문", page: "p.70", url: "" },
+            { title: "UNIT4. 명령문", page: "p.72", url: "" }
+          ]},
+          { title: "CH08 동사의 종류", lessons: [
+            { title: "UNIT1. 감각동사 + 형용사", page: "p.78", url: "" },
+            { title: "UNIT2. 수여동사 + 간접목적어 + 직접목적어", page: "p.80", url: "" },
+            { title: "UNIT3. 동사 + 목적어 + 목적격 보어", page: "p.82", url: "" }
+          ]},
+          { title: "CH09 to부정사와 동명사", lessons: [
+            { title: "UNIT1. to부정사의 명사적 용법", page: "p.88", url: "" },
+            { title: "UNIT2. to부정사의 형용사적 용법과 부사적 용법", page: "p.90", url: "" },
+            { title: "UNIT3. 동명사", page: "p.92", url: "" }
+          ]},
+          { title: "CH10 대명사", lessons: [
+            { title: "UNIT1. 재귀대명사, this/that, 비인칭 주어 it", page: "p.98", url: "" },
+            { title: "UNIT2. one, some, any", page: "p.100", url: "" }
+          ]},
+          { title: "CH11 형용사와 부사", lessons: [
+            { title: "UNIT1. 형용사의 역할", page: "p.106", url: "" },
+            { title: "UNIT2. 부사의 역할", page: "p.108", url: "" },
+            { title: "UNIT3. 비교 표현", page: "p.110", url: "" }
+          ]},
+          { title: "CH12 전치사", lessons: [
+            { title: "UNIT1. 시간의 전치사", page: "p.116", url: "" },
+            { title: "UNIT2. 장소의 전치사", page: "p.118", url: "" },
+            { title: "UNIT3. 기타 전치사", page: "p.120", url: "" }
+          ]},
+          { title: "CH13 접속사", lessons: [
+            { title: "UNIT1. and, but, or, so", page: "p.126", url: "" },
+            { title: "UNIT2. when, before, after, while", page: "p.128", url: "" },
+            { title: "UNIT3. because, if, that", page: "p.130", url: "" }
+          ]}
         ]}
       ]
     },
@@ -458,72 +528,147 @@
       key: "reading",
       label: "독해 지문 영상",
       icon: "📗",
-      chapters: [
+      series: [
+        // ================= 리더스뱅크 2 =================
+        // ※ 사진 화질 때문에 지문 제목 일부는 확실치 않을 수 있어요.
+        //    유닛 번호/페이지/주제는 정확합니다. 확인 후 자유롭게 고쳐주세요.
+        { title: "리더스뱅크2", chapters: [
+          { title: "Unit 01", lessons: [
+            { title: "[Animals] 엄마 잃은 보금자리", page: "p.14", url: "" },
+            { title: "[Tales] 흥겨운 비밀", page: "p.15", url: "" },
+            { title: "[People] 챗GPT를 만든 비밀", page: "p.16", url: "" },
+            { title: "[문법] -thing으로 끝나는 대명사 / -thing + 형용사", page: "p.18", url: "" }
+          ]},
+          { title: "Unit 02", lessons: [
+            { title: "[Plants] 버섯의 왕은 바로 나!", page: "p.20", url: "" },
+            { title: "[Tales] 양을 홀린 미스터리", page: "p.21", url: "" },
+            { title: "[Technology] 상상 그 이상의 게임 세상", page: "p.22", url: "" },
+            { title: "[문법] 부사절을 이끄는 접속사 / 감정의 원인을 나타내는 to부정사", page: "p.24", url: "" }
+          ]},
+          { title: "Unit 03", lessons: [
+            { title: "[Culture] 파자마 파티", page: "p.26", url: "" },
+            { title: "[Food] 운동할 때는 이 과일을 챙기세요", page: "p.27", url: "" },
+            { title: "[Sports] 놀라운 축구의 기술", page: "p.28", url: "" },
+            { title: "[문법] 명사를 수식하는 형용사절 / 형용사절의 위치", page: "p.30", url: "" }
+          ]},
+          { title: "Unit 04", lessons: [
+            { title: "[Places] 인도의 갠지스강", page: "p.32", url: "" },
+            { title: "[Technology] AI 기술의 어두운 면", page: "p.33", url: "" },
+            { title: "[Tales] 새를 구하기 위한 소녀의 지혜", page: "p.34", url: "" },
+            { title: "[문법] 이유의 접속사 because / 조건의 접속사 if", page: "p.36", url: "" }
+          ]},
+          { title: "Unit 05", lessons: [
+            { title: "[Animals] 엄마 침팬지의 사랑", page: "p.38", url: "" },
+            { title: "[Society] 봉사와 관련된 불편한 진실", page: "p.39", url: "" },
+            { title: "[Space] 화성에 박테리아 보내기", page: "p.40", url: "" },
+            { title: "[문법] 형용사의 역할 / 형용사의 비교", page: "p.42", url: "" }
+          ]},
+          { title: "Unit 06", lessons: [
+            { title: "[Sports] 축구 선수 등번호의 숨겨진 의미", page: "p.44", url: "" },
+            { title: "[Tales] 저기, 저를 좀 안내해 주세요!", page: "p.45", url: "" },
+            { title: "[Animals] 폭발물을 탐지하는 동물들", page: "p.46", url: "" },
+            { title: "[문법] 수여동사 / 수여동사 문장의 전환", page: "p.48", url: "" }
+          ]},
+          { title: "Unit 07", lessons: [
+            { title: "[Weather] 한국에도 얼마 남지 않은 계절", page: "p.50", url: "" },
+            { title: "[Tales] 내 기도가 할아버지에게 닿기를!", page: "p.51", url: "" },
+            { title: "[Nature] 생태계 순환", page: "p.52", url: "" },
+            { title: "[문법] make + 목적어 + 형용사 / keep + 목적어 + 형용사", page: "p.54", url: "" }
+          ]},
+          { title: "Unit 08", lessons: [
+            { title: "[Technology] AI로 증명사진 만들기", page: "p.56", url: "" },
+            { title: "[Culture] 파란색의 다양한 의미", page: "p.57", url: "" },
+            { title: "[Friends] 새 친구를 사귀려면 도움을 요청하세요", page: "p.58", url: "" },
+            { title: "[문법] 사역동사 make / 동사 help", page: "p.60", url: "" }
+          ]},
+          { title: "Unit 09", lessons: [
+            { title: "[Tales] 누가 아메리카 대륙을 발견했다고?", page: "p.61", url: "" },
+            { title: "[Society] 세계 각국의 회사 이름은 어떻게 지어졌을까?", page: "p.63", url: "" },
+            { title: "[Technology] 미래의 자동차", page: "p.64", url: "" },
+            { title: "[문법] ask + 목적어 + to부정사 / want + 목적어 + to부정사", page: "p.66", url: "" }
+          ]},
+          { title: "Unit 10", lessons: [
+            { title: "[Weather] 외로운 개에게 생긴 특별한 기적", page: "p.68", url: "" },
+            { title: "[Technology] 불꽃놀이 속 숫자의 정체는?", page: "p.69", url: "" },
+            { title: "[Tales] 육군이 될 소년의 정체는?", page: "p.70", url: "" },
+            { title: "[문법] 지각동사의 의미 / 지각동사 + 목적어 + 동사원형", page: "p.72", url: "" }
+          ]},
+          { title: "Unit 11", lessons: [
+            { title: "[Tales] 뱀파이어의 비밀 이야기", page: "p.74", url: "" },
+            { title: "[Space] 지구의 새로운 보물섬, 달", page: "p.75", url: "" },
+            { title: "[Animals] 지진을 감지하는 동물들", page: "p.76", url: "" },
+            { title: "[문법] 간접의문문 / 의문사가 주어인 간접의문문", page: "p.78", url: "" }
+          ]},
+          { title: "Unit 12", lessons: [
+            { title: "[Inventions] 잠을 깨워 주는 마법의 침대", page: "p.80", url: "" },
+            { title: "[People] Van Gogh와 Theo: 어려움을 이긴 형제애", page: "p.81", url: "" },
+            { title: "[Education] 동영상으로 볼까, 책으로 읽을까?", page: "p.82", url: "" },
+            { title: "[문법] 시간의 접속사 until / 시간의 접속사 while", page: "p.84", url: "" }
+          ]}
+        ]},
+
         // ================= 리더스뱅크 3 =================
-        // ※ 사진이 기울어져 있어 지문 제목 일부는 확실치 않을 수 있어요.
-        //    유닛 번호/페이지는 정확합니다. 확인 후 자유롭게 고쳐주세요.
-        //    (Key Words Preview / Review Test / Crossword Puzzle 등
-        //     본문 지문이 아닌 학습활동 페이지는 영상 목록에서 제외했어요.
-        //     필요하면 아래 lessons 안에 같은 형태로 추가하시면 됩니다.)
-        { title: "리더스뱅크3 · Unit 01", lessons: [
-          { title: "01. 나에게 너의 모든 비밀을 말해도 돼", page: "p.14", url: "" },
-          { title: "02. 학교생활이 힘들었다고?", page: "p.16", url: "" },
-          { title: "03. 카멜레온 페인트", page: "p.18", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 02", lessons: [
-          { title: "04. 새로운 왕은 누구?", page: "p.24", url: "" },
-          { title: "05. 회화형 왕 완전해체!", page: "p.26", url: "" },
-          { title: "06. (English Only) 사남환 우정의 아름다움", page: "p.28", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 03", lessons: [
-          { title: "07. 우리 고양이 좀 찾아 주세요!", page: "p.34", url: "" },
-          { title: "08. 열정의 채수", page: "p.36", url: "" },
-          { title: "09. 도움 주고받기의 이로움", page: "p.38", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 04", lessons: [
-          { title: "10. 처음 본 나 이야기", page: "p.44", url: "" },
-          { title: "11. 숨겨진 재능을 뽐내세요!", page: "p.46", url: "" },
-          { title: "12. (English Only) 미래의 반찬거리는 여기서 재배!", page: "p.48", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 05", lessons: [
-          { title: "13. 새로운 Superhero 탄생의 일화", page: "p.54", url: "" },
-          { title: "14. 자기 몸값을 알아내는 슬픔들", page: "p.56", url: "" },
-          { title: "15. 사람을 하나되게 만드는 어떤 개", page: "p.58", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 06", lessons: [
-          { title: "16. 곤충이 잃을 보는 법", page: "p.64", url: "" },
-          { title: "17. 물고기 예쁘게 씻는 일?", page: "p.66", url: "" },
-          { title: "18. (English Only) 고양이도 훈련이 되나요!", page: "p.68", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 07", lessons: [
-          { title: "19. 크리스마스트리의 유래", page: "p.74", url: "" },
-          { title: "20. 우리 몸의 세포 재생 주기!", page: "p.76", url: "" },
-          { title: "21. \"Go Banana!\"", page: "p.78", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 08", lessons: [
-          { title: "22. 홍수로 괴로운 곰!", page: "p.84", url: "" },
-          { title: "23. 영원히 빛나는 방울꽃", page: "p.86", url: "" },
-          { title: "24. (English Only) 영양이 죽지 않는 유일한 방법", page: "p.88", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 09", lessons: [
-          { title: "25. 제로 칼로리 음료의 비밀", page: "p.94", url: "" },
-          { title: "26. 위대한 영웅, 개코원숭이", page: "p.96", url: "" },
-          { title: "27. 인간의 이기심, 지구의 응답", page: "p.98", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 10", lessons: [
-          { title: "28. 엄마 동물이 지친 대처법", page: "p.104", url: "" },
-          { title: "29. 별의 일생", page: "p.106", url: "" },
-          { title: "30. (English Only) 가나의 장례 풍습", page: "p.108", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 11", lessons: [
-          { title: "31. 못난이 채소들의 멋진 다짐", page: "p.114", url: "" },
-          { title: "32. 수컷 물고기가 사라지고 있어!", page: "p.116", url: "" },
-          { title: "33. 홍-사랑의 옹 이야기", page: "p.118", url: "" }
-        ]},
-        { title: "리더스뱅크3 · Unit 12", lessons: [
-          { title: "34. 기억력 마법의 비결", page: "p.124", url: "" },
-          { title: "35. (English Only) 자연 최고의 건축가, 흰개미", page: "p.126", url: "" },
-          { title: "36. \"Mentor\"의 기원", page: "p.128", url: "" }
+        { title: "리더스뱅크3", chapters: [
+          { title: "Unit 01", lessons: [
+            { title: "01. 나에게 너의 모든 비밀을 말해도 돼", page: "p.14", url: "" },
+            { title: "02. 학교생활이 힘들었다고?", page: "p.16", url: "" },
+            { title: "03. 카멜레온 페인트", page: "p.18", url: "" }
+          ]},
+          { title: "Unit 02", lessons: [
+            { title: "04. 새로운 왕은 누구?", page: "p.24", url: "" },
+            { title: "05. 회화형 왕 완전해체!", page: "p.26", url: "" },
+            { title: "06. (English Only) 사남환 우정의 아름다움", page: "p.28", url: "" }
+          ]},
+          { title: "Unit 03", lessons: [
+            { title: "07. 우리 고양이 좀 찾아 주세요!", page: "p.34", url: "" },
+            { title: "08. 열정의 채수", page: "p.36", url: "" },
+            { title: "09. 도움 주고받기의 이로움", page: "p.38", url: "" }
+          ]},
+          { title: "Unit 04", lessons: [
+            { title: "10. 처음 본 나 이야기", page: "p.44", url: "" },
+            { title: "11. 숨겨진 재능을 뽐내세요!", page: "p.46", url: "" },
+            { title: "12. (English Only) 미래의 반찬거리는 여기서 재배!", page: "p.48", url: "" }
+          ]},
+          { title: "Unit 05", lessons: [
+            { title: "13. 새로운 Superhero 탄생의 일화", page: "p.54", url: "" },
+            { title: "14. 자기 몸값을 알아내는 슬픔들", page: "p.56", url: "" },
+            { title: "15. 사람을 하나되게 만드는 어떤 개", page: "p.58", url: "" }
+          ]},
+          { title: "Unit 06", lessons: [
+            { title: "16. 곤충이 잃을 보는 법", page: "p.64", url: "" },
+            { title: "17. 물고기 예쁘게 씻는 일?", page: "p.66", url: "" },
+            { title: "18. (English Only) 고양이도 훈련이 되나요!", page: "p.68", url: "" }
+          ]},
+          { title: "Unit 07", lessons: [
+            { title: "19. 크리스마스트리의 유래", page: "p.74", url: "" },
+            { title: "20. 우리 몸의 세포 재생 주기!", page: "p.76", url: "" },
+            { title: "21. \"Go Banana!\"", page: "p.78", url: "" }
+          ]},
+          { title: "Unit 08", lessons: [
+            { title: "22. 홍수로 괴로운 곰!", page: "p.84", url: "" },
+            { title: "23. 영원히 빛나는 방울꽃", page: "p.86", url: "" },
+            { title: "24. (English Only) 영양이 죽지 않는 유일한 방법", page: "p.88", url: "" }
+          ]},
+          { title: "Unit 09", lessons: [
+            { title: "25. 제로 칼로리 음료의 비밀", page: "p.94", url: "" },
+            { title: "26. 위대한 영웅, 개코원숭이", page: "p.96", url: "" },
+            { title: "27. 인간의 이기심, 지구의 응답", page: "p.98", url: "" }
+          ]},
+          { title: "Unit 10", lessons: [
+            { title: "28. 엄마 동물이 지친 대처법", page: "p.104", url: "" },
+            { title: "29. 별의 일생", page: "p.106", url: "" },
+            { title: "30. (English Only) 가나의 장례 풍습", page: "p.108", url: "" }
+          ]},
+          { title: "Unit 11", lessons: [
+            { title: "31. 못난이 채소들의 멋진 다짐", page: "p.114", url: "" },
+            { title: "32. 수컷 물고기가 사라지고 있어!", page: "p.116", url: "" },
+            { title: "33. 홍-사랑의 옹 이야기", page: "p.118", url: "" }
+          ]},
+          { title: "Unit 12", lessons: [
+            { title: "34. 기억력 마법의 비결", page: "p.124", url: "" },
+            { title: "35. (English Only) 자연 최고의 건축가, 흰개미", page: "p.126", url: "" },
+            { title: "36. \"Mentor\"의 기원", page: "p.128", url: "" }
+          ]}
         ]}
       ]
     }
@@ -545,15 +690,25 @@
   const whoBox = $("#whoBox");
   const whoText = $("#whoText");
   const tabBox = $("#tabBox");
+  const navHeader = $("#navHeader");
   const summaryBox = $("#summaryBox");
-  const chapterBox = $("#chapterBox");
+  const contentBox = $("#contentBox");
   const showAddStudentBtn = $("#showAddStudentBtn");
   const addStudentForm = $("#addStudentForm");
   const newStudentInput = $("#newStudentInput");
+  const newStudentPin = $("#newStudentPin");
   const confirmAddStudentBtn = $("#confirmAddStudentBtn");
   const cancelAddStudentBtn = $("#cancelAddStudentBtn");
+  const pinModal = $("#pinModal");
+  const pinModalName = $("#pinModalName");
+  const pinInput = $("#pinInput");
+  const pinCancelBtn = $("#pinCancelBtn");
+  const pinConfirmBtn = $("#pinConfirmBtn");
 
-  // "+ 새 학생 등록" 버튼으로 추가한 이름은 이 브라우저의 localStorage에 저장됩니다.
+  document.title = SITE_TITLE;
+  siteTitleHeader.textContent = SITE_TITLE;
+
+  // ---------------- 학생 목록 (기본 + 이 브라우저에서 추가한 학생) ----------------
   function getExtraStudents(){
     try {
       const raw = localStorage.getItem(LS_EXTRA_STUDENTS_KEY);
@@ -567,39 +722,34 @@
   }
   function getAllStudents(){
     const extra = getExtraStudents();
-    // 기본 명단(STUDENTS)에 이미 있는 이름은 중복으로 추가하지 않음
-    return STUDENTS.concat(extra.filter((n) => !STUDENTS.includes(n)));
+    const baseNames = STUDENTS.map((s) => s.name);
+    return STUDENTS.concat(extra.filter((s) => !baseNames.includes(s.name)));
   }
-
-  document.title = SITE_TITLE;
-  siteTitleHeader.textContent = SITE_TITLE;
-
-  let activeSubjectKey = SUBJECTS[0] ? SUBJECTS[0].key : null;
 
   function renderNameGrid(){
     nameGrid.innerHTML = "";
-    const extra = getExtraStudents();
-    getAllStudents().forEach((name) => {
+    const extraNames = getExtraStudents().map((s) => s.name);
+    getAllStudents().forEach((student) => {
       const btn = document.createElement("button");
-      btn.className = "name-btn" + (extra.includes(name) ? " is-extra" : "");
+      btn.className = "name-btn" + (extraNames.includes(student.name) ? " is-extra" : "");
       btn.type = "button";
-      btn.textContent = name;
-      btn.addEventListener("click", () => login(name));
+      btn.textContent = student.name;
+      btn.addEventListener("click", () => openPinModal(student));
       nameGrid.appendChild(btn);
     });
   }
 
   function addStudent(){
     const name = newStudentInput.value.trim();
-    if (!name) return;
-    if (getAllStudents().includes(name)) {
-      alert("이미 등록된 이름이에요.");
-      return;
-    }
+    const pin = newStudentPin.value.trim();
+    if (!name) { alert("이름을 입력해주세요."); return; }
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) { alert("비밀번호는 숫자 4자리로 입력해주세요."); return; }
+    if (getAllStudents().some((s) => s.name === name)) { alert("이미 등록된 이름이에요."); return; }
     const extra = getExtraStudents();
-    extra.push(name);
+    extra.push({ name, pin });
     saveExtraStudents(extra);
     newStudentInput.value = "";
+    newStudentPin.value = "";
     addStudentForm.style.display = "none";
     renderNameGrid();
   }
@@ -611,17 +761,46 @@
   cancelAddStudentBtn.addEventListener("click", () => {
     addStudentForm.style.display = "none";
     newStudentInput.value = "";
+    newStudentPin.value = "";
   });
   confirmAddStudentBtn.addEventListener("click", addStudent);
-  newStudentInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") addStudent();
-  });
+  newStudentPin.addEventListener("keydown", (e) => { if (e.key === "Enter") addStudent(); });
+
+  // ---------------- PIN 로그인 모달 ----------------
+  let pendingStudent = null;
+
+  function openPinModal(student){
+    pendingStudent = student;
+    pinModalName.textContent = student.name + "님, 안녕하세요!";
+    pinInput.value = "";
+    pinModal.style.display = "flex";
+    pinInput.focus();
+  }
+  function closePinModal(){
+    pinModal.style.display = "none";
+    pendingStudent = null;
+  }
+  function confirmPin(){
+    if (!pendingStudent) return;
+    if (pinInput.value === pendingStudent.pin) {
+      const name = pendingStudent.name;
+      closePinModal();
+      login(name);
+    } else {
+      alert("비밀번호가 맞지 않아요. 다시 시도해주세요.");
+      pinInput.value = "";
+      pinInput.focus();
+    }
+  }
+  pinCancelBtn.addEventListener("click", closePinModal);
+  pinConfirmBtn.addEventListener("click", confirmPin);
+  pinInput.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmPin(); });
+  pinModal.addEventListener("click", (e) => { if (e.target === pinModal) closePinModal(); });
 
   function login(name){
     localStorage.setItem(LS_KEY, name);
     showMain(name);
   }
-
   function logout(){
     localStorage.removeItem(LS_KEY);
     loginScreen.style.display = "";
@@ -629,18 +808,16 @@
     whoBox.style.display = "none";
   }
 
-  function showMain(name){
-    loginScreen.style.display = "none";
-    mainScreen.style.display = "block";
-    whoBox.style.display = "flex";
-    whoText.textContent = name + "님";
-    renderTabs();
-    renderSubject(activeSubjectKey);
-  }
+  // ---------------- 화면 상태: 과목 → 시리즈 → 챕터 → 강의 ----------------
+  let nav = { subjectKey: SUBJECTS[0] ? SUBJECTS[0].key : null, view: "series", seriesIdx: null, chapterIdx: null };
 
-  function countSubject(subject){
+  function currentSubject(){ return SUBJECTS.find((s) => s.key === nav.subjectKey) || null; }
+  function currentSeries(){ const subj = currentSubject(); return subj ? subj.series[nav.seriesIdx] : null; }
+  function currentChapter(){ const series = currentSeries(); return series ? series.chapters[nav.chapterIdx] : null; }
+
+  function countLessons(chapters){
     let total = 0, available = 0;
-    subject.chapters.forEach((ch) => {
+    chapters.forEach((ch) => {
       ch.lessons.forEach((ls) => {
         total++;
         if (ls.url && ls.url.trim() !== "") available++;
@@ -648,50 +825,128 @@
     });
     return { total, available };
   }
+  function countSubject(subject){
+    let total = 0, available = 0;
+    subject.series.forEach((se) => {
+      const c = countLessons(se.chapters);
+      total += c.total; available += c.available;
+    });
+    return { total, available };
+  }
+
+  function showMain(name){
+    loginScreen.style.display = "none";
+    mainScreen.style.display = "block";
+    whoBox.style.display = "flex";
+    whoText.textContent = name + "님";
+    nav = { subjectKey: SUBJECTS[0] ? SUBJECTS[0].key : null, view: "series", seriesIdx: null, chapterIdx: null };
+    renderAll();
+  }
+
+  function switchSubject(key){
+    nav = { subjectKey: key, view: "series", seriesIdx: null, chapterIdx: null };
+    renderAll();
+  }
+  function openSeries(idx){
+    nav.view = "chapters"; nav.seriesIdx = idx; nav.chapterIdx = null;
+    renderAll();
+  }
+  function openChapter(idx){
+    nav.view = "lessons"; nav.chapterIdx = idx;
+    renderAll();
+  }
+  function goBack(){
+    if (nav.view === "lessons") { nav.view = "chapters"; nav.chapterIdx = null; }
+    else if (nav.view === "chapters") { nav.view = "series"; nav.seriesIdx = null; }
+    renderAll();
+  }
+
+  function renderAll(){
+    renderTabs();
+    renderNavHeader();
+    renderSummary();
+    renderContent();
+  }
 
   function renderTabs(){
     tabBox.innerHTML = "";
     SUBJECTS.forEach((subject) => {
       const { total, available } = countSubject(subject);
       const btn = document.createElement("button");
-      btn.className = "tab-btn" + (subject.key === activeSubjectKey ? " active" : "");
+      btn.className = "tab-btn" + (subject.key === nav.subjectKey ? " active" : "");
       btn.type = "button";
-      btn.innerHTML = subject.icon + " " + subject.label +
+      btn.innerHTML = subject.icon + " " + escapeHtml(subject.label) +
         "<small>" + total + "강 · 시청가능 " + available + "강</small>";
-      btn.addEventListener("click", () => {
-        activeSubjectKey = subject.key;
-        renderTabs();
-        renderSubject(activeSubjectKey);
-      });
+      btn.addEventListener("click", () => switchSubject(subject.key));
       tabBox.appendChild(btn);
     });
   }
 
-  function renderSubject(key){
-    const subject = SUBJECTS.find((s) => s.key === key);
-    if (!subject) {
-      summaryBox.textContent = "등록된 강의가 없어요.";
-      chapterBox.innerHTML = "";
+  function renderNavHeader(){
+    navHeader.innerHTML = "";
+    if (nav.view === "series") return;
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "back-btn";
+    back.textContent = "← 뒤로";
+    back.addEventListener("click", goBack);
+    navHeader.appendChild(back);
+
+    const crumb = document.createElement("span");
+    crumb.className = "breadcrumb";
+    if (nav.view === "chapters") {
+      crumb.textContent = currentSeries().title;
+    } else if (nav.view === "lessons") {
+      crumb.innerHTML = "<span class='dim'>" + escapeHtml(currentSeries().title) + " ›</span> " + escapeHtml(currentChapter().title);
+    }
+    navHeader.appendChild(crumb);
+  }
+
+  function renderSummary(){
+    const subject = currentSubject();
+    if (!subject) { summaryBox.textContent = "등록된 강의가 없어요."; return; }
+
+    let total = 0, available = 0, label = "전체";
+    if (nav.view === "series") {
+      ({ total, available } = countSubject(subject));
+    } else if (nav.view === "chapters") {
+      ({ total, available } = countLessons(currentSeries().chapters));
+      label = currentSeries().title;
+    } else if (nav.view === "lessons") {
+      const ch = currentChapter();
+      total = ch.lessons.length;
+      available = ch.lessons.filter((ls) => ls.url && ls.url.trim() !== "").length;
+      label = currentChapter().title;
+    }
+    summaryBox.innerHTML =
+      escapeHtml(label) + " <b>" + total + "강</b> <span class='dot'>·</span> 시청 가능 <b>" + available + "강</b>";
+  }
+
+  function renderContent(){
+    const subject = currentSubject();
+    contentBox.innerHTML = "";
+    if (!subject) return;
+
+    if (nav.view === "series") {
+      subject.series.forEach((se, idx) => {
+        const c = countLessons(se.chapters);
+        contentBox.appendChild(makeNavRow(se.title, se.chapters.length + "개 챕터 · " + c.total + "강", () => openSeries(idx)));
+      });
       return;
     }
-    const { total, available } = countSubject(subject);
-    summaryBox.innerHTML =
-      "전체 <b>" + total + "강</b> <span class='dot'>·</span> 시청 가능 <b>" + available + "강</b>";
 
-    chapterBox.innerHTML = "";
-    subject.chapters.forEach((ch) => {
-      const det = document.createElement("details");
-      det.className = "chapter";
+    if (nav.view === "chapters") {
+      currentSeries().chapters.forEach((ch, idx) => {
+        contentBox.appendChild(makeNavRow(ch.title, ch.lessons.length + "강", () => openChapter(idx)));
+      });
+      return;
+    }
 
-      const summary = document.createElement("summary");
-      summary.innerHTML = "<span>" + escapeHtml(ch.title) + "</span>" +
-        "<span class='cnt'>" + ch.lessons.length + "강</span>";
-      det.appendChild(summary);
-
+    if (nav.view === "lessons") {
       const list = document.createElement("div");
       list.className = "lesson-list";
-
-      ch.lessons.forEach((ls) => {
+      currentChapter().lessons.forEach((ls) => {
         const row = document.createElement("div");
         row.className = "lesson";
 
@@ -718,13 +973,21 @@
           span.textContent = "준비 중";
           row.appendChild(span);
         }
-
         list.appendChild(row);
       });
+      contentBox.appendChild(list);
+    }
+  }
 
-      det.appendChild(list);
-      chapterBox.appendChild(det);
-    });
+  function makeNavRow(title, meta, onClick){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "nav-row";
+    btn.innerHTML =
+      "<span><span>" + escapeHtml(title) + "</span><div class='meta'>" + escapeHtml(meta) + "</div></span>" +
+      "<span class='chev'>›</span>";
+    btn.addEventListener("click", onClick);
+    return btn;
   }
 
   function escapeHtml(str){
@@ -739,7 +1002,7 @@
   // 시작: 이전에 로그인했던 이름이 있으면 자동으로 이어서 보여주기
   renderNameGrid();
   const saved = localStorage.getItem(LS_KEY);
-  if (saved && getAllStudents().includes(saved)) {
+  if (saved && getAllStudents().some((s) => s.name === saved)) {
     showMain(saved);
   }
 </script>
