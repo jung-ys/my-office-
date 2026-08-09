@@ -12,6 +12,7 @@ import {
   updateStudent,
 } from "./actions";
 import SeedButton from "./SeedButton";
+import SeriesAssignmentGroup from "./SeriesAssignmentGroup";
 
 export default async function AdminPage({
   searchParams,
@@ -262,7 +263,8 @@ export default async function AdminPage({
 
                 <div className="mt-2 rounded-lg bg-zinc-50 p-3">
                   <p className="mb-2 text-xs font-semibold text-zinc-600">
-                    📘 배정 교재 (권/유닛 단위로 체크한 것만 이 학생 화면에 보여요)
+                    📘 배정 교재 — 교재명을 체크하면 전체가, 아래 권/유닛을 개별로 체크하면 그것만
+                    이 학생 화면에 보여요
                   </p>
                   <div className="flex flex-col gap-3">
                     {subjects.map((subject) => (
@@ -272,29 +274,14 @@ export default async function AdminPage({
                         </p>
                         <div className="mt-1 flex flex-col gap-2">
                           {subject.series.map((se) => (
-                            <div key={se.id}>
-                              <p className="text-xs text-zinc-400">{se.title}</p>
-                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
-                                {se.chapters.map((ch) => (
-                                  <label
-                                    key={ch.id}
-                                    className="flex items-center gap-1.5 text-xs text-zinc-700"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      name="chapterIds"
-                                      value={ch.id}
-                                      defaultChecked={assignedByStudent.get(s.id)?.has(ch.id) ?? false}
-                                      className="h-3.5 w-3.5 rounded border-zinc-300"
-                                    />
-                                    {ch.title}
-                                  </label>
-                                ))}
-                                {se.chapters.length === 0 && (
-                                  <span className="text-xs text-zinc-400">챕터 없음</span>
-                                )}
-                              </div>
-                            </div>
+                            <SeriesAssignmentGroup
+                              key={se.id}
+                              seriesTitle={se.title}
+                              chapters={se.chapters.map((ch) => ({ id: ch.id, title: ch.title }))}
+                              defaultCheckedIds={se.chapters
+                                .filter((ch) => assignedByStudent.get(s.id)?.has(ch.id))
+                                .map((ch) => ch.id)}
+                            />
                           ))}
                           {subject.series.length === 0 && (
                             <span className="text-xs text-zinc-400">시리즈 없음</span>
