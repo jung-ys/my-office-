@@ -3,16 +3,30 @@ import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { getAllStudentsProgressOverview } from "@/lib/progress";
 import { GRADE_OPTIONS } from "@/lib/grades";
-import { adminLogin, adminLogout, createStudent, deleteStudent, updateStudent } from "./actions";
+import {
+  adminLogin,
+  adminLogout,
+  createStudent,
+  deleteStudent,
+  setStartingPoint,
+  updateStudent,
+} from "./actions";
 import SeedButton from "./SeedButton";
 
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; seeded?: string; added?: string; updated?: string; deleted?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    seeded?: string;
+    added?: string;
+    updated?: string;
+    deleted?: string;
+    startset?: string;
+  }>;
 }) {
   const admin = await isAdmin();
-  const { error, seeded, added, updated, deleted } = await searchParams;
+  const { error, seeded, added, updated, deleted, startset } = await searchParams;
 
   if (!admin) {
     return (
@@ -44,7 +58,12 @@ export default async function AdminPage({
       include: {
         series: {
           orderBy: { order: "asc" },
-          include: { chapters: { orderBy: { order: "asc" } } },
+          include: {
+            chapters: {
+              orderBy: { order: "asc" },
+              include: { videos: { orderBy: { order: "asc" }, select: { id: true, title: true } } },
+            },
+          },
         },
       },
     }),
@@ -109,6 +128,11 @@ export default async function AdminPage({
       {deleted && (
         <p className="rounded-lg bg-zinc-100 px-4 py-3 text-sm text-zinc-600">
           🗑 {deleted}님을 삭제했어요.
+        </p>
+      )}
+      {startset && (
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          ✅ {startset}님의 시작 지점을 설정했어요. 그 이전 배정된 영상은 모두 시청 완료로 표시됐어요.
         </p>
       )}
 
@@ -279,6 +303,53 @@ export default async function AdminPage({
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div className="mt-2 rounded-lg bg-zinc-50 p-3">
+                  <p className="mb-2 text-xs font-semibold text-zinc-600">
+                    🚩 시작 지점 설정 (교재마다 시작하는 권·과가 달라요. 실제로 시작할 영상을 고르면
+                    그 이전의 배정된 영상은 전부 시청 완료로 표시돼요)
+                  </p>
+                  <div className="flex gap-2">
+                    <select
+                      name="startVideoId"
+                      defaultValue=""
+                      className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                    >
+                      <option value="" disabled>
+                        시작할 영상을 선택하세요
+                      </option>
+                      {subjects.map((subject) =>
+                        subject.series.map((se) =>
+                          se.chapters
+                            .filter((ch) => assignedByStudent.get(s.id)?.has(ch.id))
+                            .map((ch) => (
+                              <optgroup
+                                key={ch.id}
+                                label={`${subject.icon} ${se.title} · ${ch.title}`}
+                              >
+                                {ch.videos.map((v) => (
+                                  <option key={v.id} value={v.id}>
+                                    {v.title}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))
+                        )
+                      )}
+                    </select>
+                    <button
+                      formAction={setStartingPoint.bind(null, s.id)}
+                      className="shrink-0 rounded-lg border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50"
+                    >
+                      시작 지점 저장
+                    </button>
+                  </div>
+                  {(assignedByStudent.get(s.id)?.size ?? 0) === 0 && (
+                    <p className="mt-1 text-xs text-zinc-400">
+                      먼저 위에서 배정 교재를 체크하고 저장한 뒤에 설정할 수 있어요.
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-1 flex justify-end gap-3">

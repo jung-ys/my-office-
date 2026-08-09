@@ -153,49 +153,55 @@ export async function getAllStudentsProgressOverview() {
 }
 
 /**
- * 학생이 이 과목에서 가장 최근에 시청한 영상을 기준으로,
- * 같은 시리즈의 배정된 챕터 안에서 다음으로 이어볼 "오늘의 학습" 영상을 계산합니다.
- * 이 과목에서 시청 기록이 전혀 없으면 null을 반환합니다 (→ 시리즈 선택 안내).
+ * 이 과목에서 학생에게 배정된 모든 시리즈·챕터를 순서대로(시리즈 순서 → 챕터 순서 → 영상 순서)
+ * 훑어서 아직 안 본 첫 영상을 "오늘의 학습"으로 계산합니다.
+ * 한 책을 다 끝내면 자동으로 다음 배정된 책의 첫 영상으로 이어져요.
+ * 배정된 영상이 없거나, 배정은 있지만 하나도 시청하지 않았으면 null을 반환합니다 (→ 시리즈 선택 안내).
  */
 export async function getContinueLessonForSubject(subjectId: string, studentId: string) {
-  const latest = await prisma.progress.findFirst({
-    where: {
-      studentId,
-      watched: true,
-      video: { chapter: { series: { subjectId } } },
-    },
-    orderBy: { lastWatchedAt: "desc" },
-    include: { video: { include: { chapter: { include: { series: true } } } } },
-  });
-
-  if (!latest) return null;
-
-  const seriesId = latest.video.chapter.series.id;
-  const chapters = await prisma.chapter.findMany({
-    where: { seriesId, assignedStudents: { some: { studentId } } },
+  const series = await prisma.series.findMany({
+    where: { subjectId, chapters: { some: { assignedStudents: { some: { studentId } } } } },
     orderBy: { order: "asc" },
     include: {
-      videos: {
+      chapters: {
+        where: { assignedStudents: { some: { studentId } } },
         orderBy: { order: "asc" },
-        include: { progress: { where: { studentId } } },
+        include: {
+          videos: {
+            orderBy: { order: "asc" },
+            include: { progress: { where: { studentId } } },
+          },
+        },
       },
     },
   });
 
-  for (const ch of chapters) {
-    for (const v of ch.videos) {
-      if (!v.progress[0]?.watched) {
+  let anyAssigned = false;
+  let anyWatched = false;
+
+  for (const se of series) {
+    for (const ch of se.chapters) {
+      for (const v of ch.videos) {
+        anyAssigned = true;
+        if (v.progress[0]?.watched) {
+          anyWatched = true;
+          continue;
+        }
         return {
           kind: "continue" as const,
           video: v,
           chapterTitle: ch.title,
-          seriesTitle: latest.video.chapter.series.title,
-          seriesId,
+          seriesTitle: se.title,
+          seriesId: se.id,
           chapterId: ch.id,
         };
       }
     }
   }
-  // 배정된 챕터를 전부 완료한 경우
-  return { kind: "done" as const, seriesTitle: latest.video.chapter.series.title, seriesId };
+
+  if (!anyAssigned || !anyWatched) return null;
+
+  // 배정된 시리즈를 전부 완료한 경우
+  const lastSeries = series[series.length - 1];
+  return { kind: "done" as const, seriesTitle: lastSeries.title, seriesId: lastSeries.id };
 }
