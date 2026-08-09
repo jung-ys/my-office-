@@ -38,13 +38,20 @@ export default async function AdminPage({
     );
   }
 
-  const [subjects, studentOverview] = await Promise.all([
+  const [subjects, studentOverview, assignments] = await Promise.all([
     prisma.subject.findMany({
       orderBy: { order: "asc" },
-      include: { series: { include: { _count: { select: { chapters: true } } } } },
+      include: { series: { orderBy: { order: "asc" }, include: { _count: { select: { chapters: true } } } } },
     }),
     getAllStudentsProgressOverview(),
+    prisma.studentSeries.findMany({ select: { studentId: true, seriesId: true } }),
   ]);
+
+  const assignedByStudent = new Map<string, Set<string>>();
+  for (const a of assignments) {
+    if (!assignedByStudent.has(a.studentId)) assignedByStudent.set(a.studentId, new Set());
+    assignedByStudent.get(a.studentId)!.add(a.seriesId);
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-8">
@@ -185,6 +192,38 @@ export default async function AdminPage({
                       {sp.icon} {sp.label}: {sp.watched} / {sp.total}강
                     </span>
                   ))}
+                </div>
+
+                <div className="mt-2 rounded-lg bg-zinc-50 p-3">
+                  <p className="mb-2 text-xs font-semibold text-zinc-600">
+                    📘 배정 교재 (체크한 것만 이 학생 화면에 보여요)
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {subjects.map((subject) => (
+                      <div key={subject.id}>
+                        <p className="text-xs font-medium text-zinc-500">
+                          {subject.icon} {subject.label}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                          {subject.series.map((se) => (
+                            <label key={se.id} className="flex items-center gap-1.5 text-xs text-zinc-700">
+                              <input
+                                type="checkbox"
+                                name="seriesIds"
+                                value={se.id}
+                                defaultChecked={assignedByStudent.get(s.id)?.has(se.id) ?? false}
+                                className="h-3.5 w-3.5 rounded border-zinc-300"
+                              />
+                              {se.title}
+                            </label>
+                          ))}
+                          {subject.series.length === 0 && (
+                            <span className="text-xs text-zinc-400">시리즈 없음</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="mt-1 flex justify-end gap-3">

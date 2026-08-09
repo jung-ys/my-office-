@@ -17,7 +17,7 @@ export default async function SubjectSeriesListPage({
   if (!subject) notFound();
 
   const seriesList = await prisma.series.findMany({
-    where: { subjectId: subject.id },
+    where: { subjectId: subject.id, assignedStudents: { some: { studentId: student.id } } },
     orderBy: { order: "asc" },
   });
 
@@ -58,7 +58,9 @@ export default async function SubjectSeriesListPage({
           );
         })}
         {seriesList.length === 0 && (
-          <p className="text-zinc-500">아직 등록된 시리즈가 없어요.</p>
+          <p className="text-zinc-500">
+            아직 배정된 교재가 없어요. 선생님께 교재 배정을 요청해주세요.
+          </p>
         )}
       </div>
     </div>

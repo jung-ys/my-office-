@@ -9,6 +9,9 @@ export default function StudentHeader({ name }: { name: string }) {
           📚 삼성영어 셀레나 삼양캠퍼스
         </Link>
         <nav className="flex items-center gap-3 text-sm">
+          <Link href="/student/history" className="text-zinc-500 hover:text-zinc-900">
+            학습 이력
+          </Link>
           <span className="font-medium text-zinc-700">{name}님</span>
           <form action={logoutStudent}>
             <button className="text-zinc-400 hover:text-zinc-700">로그아웃</button>

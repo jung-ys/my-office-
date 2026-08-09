@@ -61,10 +61,25 @@ export async function updateStudent(studentId: string, formData: FormData) {
   const school = String(formData.get("school") ?? "").trim();
   if (!name || !loginId) return;
 
-  await prisma.student.update({
-    where: { id: studentId },
-    data: { name, loginId, grade: grade || null, school: school || null },
-  });
+  // 체크된 시리즈 = 이 학생에게 배정할 교재 목록
+  const seriesIds = formData.getAll("seriesIds").map(String);
+
+  await prisma.$transaction([
+    prisma.student.update({
+      where: { id: studentId },
+      data: { name, loginId, grade: grade || null, school: school || null },
+    }),
+    prisma.studentSeries.deleteMany({
+      where: { studentId, ...(seriesIds.length > 0 ? { seriesId: { notIn: seriesIds } } : {}) },
+    }),
+    ...seriesIds.map((seriesId) =>
+      prisma.studentSeries.upsert({
+        where: { studentId_seriesId: { studentId, seriesId } },
+        create: { studentId, seriesId },
+        update: {},
+      })
+    ),
+  ]);
   revalidatePath("/admin");
 }
 

@@ -11,9 +11,12 @@ export async function logoutStudent() {
 }
 
 /** 영상을 시청 완료로 표시합니다. 이미 봤던 영상이면 복습 횟수를 올립니다. */
-export async function markWatched(videoId: string) {
+export async function markWatched(videoId: string, formData: FormData) {
   const student = await getStudentSession();
   if (!student) redirect("/");
+
+  const watchSecondsRaw = formData.get("watchSeconds");
+  const watchSeconds = watchSecondsRaw ? Number(watchSecondsRaw) : null;
 
   const existing = await prisma.progress.findUnique({
     where: { studentId_videoId: { studentId: student.id, videoId } },
@@ -29,11 +32,13 @@ export async function markWatched(videoId: string) {
       watched: true,
       firstWatchedAt: now,
       lastWatchedAt: now,
+      watchSeconds,
     },
     update: {
       watched: true,
       lastWatchedAt: now,
       reviewCount: existing?.watched ? { increment: 1 } : undefined,
+      watchSeconds: watchSeconds ?? undefined,
     },
   });
 

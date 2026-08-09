@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getStudentSession } from "@/lib/auth";
-import { markReview, markWatched } from "../../actions";
+import VideoPlayer from "./VideoPlayer";
 
 export default async function VideoPlayerPage({
   params,
@@ -16,11 +16,20 @@ export default async function VideoPlayerPage({
   const video = await prisma.video.findUnique({
     where: { id },
     include: {
-      chapter: { include: { series: { include: { subject: true } } } },
+      chapter: {
+        include: {
+          series: {
+            include: {
+              subject: true,
+              assignedStudents: { where: { studentId: student.id } },
+            },
+          },
+        },
+      },
       progress: { where: { studentId: student.id } },
     },
   });
-  if (!video) notFound();
+  if (!video || video.chapter.series.assignedStudents.length === 0) notFound();
 
   const siblings = await prisma.video.findMany({
     where: { chapterId: video.chapterId },
@@ -50,56 +59,19 @@ export default async function VideoPlayerPage({
       </div>
 
       {hasUrl ? (
-        <>
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-black">
-            <div className="aspect-video w-full">
-              <iframe
-                src={video.videoUrl}
-                className="h-full w-full"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                title={video.title}
-              />
-            </div>
-          </div>
-          <p className="text-center text-xs text-zinc-400">
-            영상이 안 보이면 마이박스 임베드가 막혀있을 수 있어요.{" "}
-            <a
-              href={video.videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-indigo-600 underline"
-            >
-              새 탭에서 영상 보기 →
-            </a>
-          </p>
-        </>
+        <VideoPlayer
+          videoId={video.id}
+          videoUrl={video.videoUrl}
+          title={video.title}
+          durationMinutes={video.duration}
+          watched={watched}
+          reviewCount={progress?.reviewCount ?? 0}
+        />
       ) : (
         <div className="flex aspect-video w-full items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
           <p className="text-sm text-zinc-400">아직 영상 링크가 등록되지 않았어요 (준비 중)</p>
         </div>
       )}
-
-      <div className="flex flex-col items-center gap-3">
-        {watched ? (
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-sm font-medium text-emerald-600">
-              ✓ 시청 완료 {progress?.reviewCount ? `· 복습 ${progress.reviewCount}회` : ""}
-            </p>
-            <form action={markReview.bind(null, video.id)}>
-              <button className="rounded-lg border border-indigo-300 px-5 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-50">
-                🔁 복습했어요
-              </button>
-            </form>
-          </div>
-        ) : (
-          <form action={markWatched.bind(null, video.id)}>
-            <button className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white hover:bg-indigo-700">
-              시청 완료로 표시하기
-            </button>
-          </form>
-        )}
-      </div>
 
       <div className="mt-4 flex items-center justify-between border-t border-zinc-200 pt-4 text-sm">
         {prevVideo ? (
