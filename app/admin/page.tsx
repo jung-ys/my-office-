@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
-import { adminLogin, adminLogout, createStudent, createTextbook, deleteStudent, deleteTextbook } from "./actions";
+import { adminLogin, adminLogout, createStudent, deleteStudent } from "./actions";
 
 export default async function AdminPage({
   searchParams,
@@ -35,12 +35,12 @@ export default async function AdminPage({
     );
   }
 
-  const [students, textbooks] = await Promise.all([
-    prisma.student.findMany({ orderBy: { name: "asc" } }),
-    prisma.textbook.findMany({
+  const [subjects, students] = await Promise.all([
+    prisma.subject.findMany({
       orderBy: { order: "asc" },
-      include: { _count: { select: { videos: true } } },
+      include: { series: { include: { _count: { select: { chapters: true } } } } },
     }),
+    prisma.student.findMany({ orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -57,57 +57,34 @@ export default async function AdminPage({
         </div>
       </div>
 
-      {/* 교재 관리 */}
-      <section className="flex flex-col gap-3">
-        <h2 className="font-bold text-zinc-800">📘 교재</h2>
-        <div className="flex flex-col gap-2">
-          {textbooks.map((t) => (
-            <div
-              key={t.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
-            >
-              <Link href={`/admin/textbooks/${t.id}`} className="font-medium text-zinc-800 hover:underline">
-                {t.title}{" "}
-                <span className="text-xs text-zinc-400">
-                  (순서 {t.order} · 영상 {t._count.videos}개)
-                </span>
+      {/* 과목별 시리즈 관리 */}
+      <section className="flex flex-col gap-4">
+        <h2 className="font-bold text-zinc-800">📚 과목 · 강의 관리</h2>
+        {subjects.map((subject) => (
+          <div key={subject.id} className="rounded-lg border border-zinc-200 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-zinc-800">
+                {subject.icon} {subject.label}
+              </p>
+              <Link
+                href={`/admin/subjects/${subject.key}`}
+                className="text-sm text-indigo-600 hover:underline"
+              >
+                시리즈 관리 →
               </Link>
-              <div className="flex items-center gap-3 text-sm">
-                <Link href={`/admin/textbooks/${t.id}`} className="text-indigo-600 hover:underline">
-                  영상 관리
-                </Link>
-                <form action={deleteTextbook.bind(null, t.id)}>
-                  <button className="text-red-500 hover:underline">삭제</button>
-                </form>
-              </div>
             </div>
-          ))}
-          {textbooks.length === 0 && <p className="text-sm text-zinc-400">등록된 교재가 없어요.</p>}
-        </div>
-
-        <form action={createTextbook} className="flex gap-2 rounded-lg border border-dashed border-zinc-300 p-3">
-          <input
-            name="title"
-            placeholder="새 교재 이름 (예: 기초 문법 3권)"
-            className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            required
-          />
-          <input
-            name="order"
-            type="number"
-            placeholder="순서"
-            defaultValue={textbooks.length + 1}
-            className="w-20 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
-            추가
-          </button>
-        </form>
+            <p className="mt-1 text-xs text-zinc-400">
+              시리즈 {subject.series.length}개:{" "}
+              {subject.series.map((s) => s.title).join(", ") || "없음"}
+            </p>
+          </div>
+        ))}
+        {subjects.length === 0 && <p className="text-sm text-zinc-400">등록된 과목이 없어요.</p>}
       </section>
 
       {/* 학생 관리 */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-bold text-zinc-800">🧒 학생</h2>
+        <h2 className="font-bold text-zinc-800">🧒 학생 (이름 + 비밀번호 4자리)</h2>
         <div className="flex flex-col gap-2">
           {students.map((s) => (
             <div
@@ -115,7 +92,7 @@ export default async function AdminPage({
               className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
             >
               <span className="font-medium text-zinc-800">
-                {s.name} {s.pin && <span className="text-xs text-zinc-400">(PIN 설정됨)</span>}
+                {s.name} <span className="text-xs text-zinc-400">(PIN {s.pin})</span>
               </span>
               <form action={deleteStudent.bind(null, s.id)}>
                 <button className="text-sm text-red-500 hover:underline">삭제</button>
@@ -134,9 +111,11 @@ export default async function AdminPage({
           />
           <input
             name="pin"
-            placeholder="PIN(선택, 4자리)"
+            placeholder="비밀번호 4자리"
             maxLength={4}
+            inputMode="numeric"
             className="w-32 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            required
           />
           <button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
             추가

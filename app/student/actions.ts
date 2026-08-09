@@ -10,19 +10,6 @@ export async function logoutStudent() {
   redirect("/");
 }
 
-/** 학생이 학습할 교재를 선택합니다 (오늘의 학습 기준 교재가 바뀜). */
-export async function selectTextbook(textbookId: string) {
-  const student = await getStudentSession();
-  if (!student) redirect("/");
-
-  await prisma.student.update({
-    where: { id: student.id },
-    data: { currentTextbookId: textbookId },
-  });
-
-  redirect(`/student/textbooks/${textbookId}`);
-}
-
 /** 영상을 시청 완료로 표시합니다. 이미 봤던 영상이면 복습 횟수를 올립니다. */
 export async function markWatched(videoId: string) {
   const student = await getStudentSession();

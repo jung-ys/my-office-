@@ -32,10 +32,9 @@ export async function createStudent(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const pin = String(formData.get("pin") ?? "").trim();
   if (!name) return;
+  if (!/^\d{4}$/.test(pin)) return;
 
-  await prisma.student.create({
-    data: { name, pin: pin || null },
-  });
+  await prisma.student.create({ data: { name, pin } });
   revalidatePath("/admin");
 }
 
@@ -45,58 +44,95 @@ export async function deleteStudent(studentId: string) {
   revalidatePath("/admin");
 }
 
-// ---- 교재 관리 ----
+// ---- 시리즈 관리 ----
 
-export async function createTextbook(formData: FormData) {
+export async function createSeries(subjectId: string, formData: FormData) {
   await requireAdmin();
   const title = String(formData.get("title") ?? "").trim();
   const order = Number(formData.get("order") ?? 0) || 0;
   if (!title) return;
 
-  await prisma.textbook.create({ data: { title, order } });
-  revalidatePath("/admin");
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  await prisma.series.create({ data: { subjectId, title, order } });
+  revalidatePath(`/admin/subjects/${subject?.key}`);
 }
 
-export async function deleteTextbook(textbookId: string) {
+export async function deleteSeries(subjectKey: string, seriesId: string) {
   await requireAdmin();
-  await prisma.textbook.delete({ where: { id: textbookId } });
-  revalidatePath("/admin");
+  await prisma.series.delete({ where: { id: seriesId } });
+  revalidatePath(`/admin/subjects/${subjectKey}`);
+}
+
+// ---- 챕터 관리 ----
+
+export async function createChapter(subjectKey: string, seriesId: string, formData: FormData) {
+  await requireAdmin();
+  const title = String(formData.get("title") ?? "").trim();
+  const order = Number(formData.get("order") ?? 0) || 0;
+  if (!title) return;
+
+  await prisma.chapter.create({ data: { seriesId, title, order } });
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}`);
+}
+
+export async function deleteChapter(subjectKey: string, seriesId: string, chapterId: string) {
+  await requireAdmin();
+  await prisma.chapter.delete({ where: { id: chapterId } });
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}`);
 }
 
 // ---- 영상 관리 ----
 
-export async function createVideo(textbookId: string, formData: FormData) {
+export async function createVideo(
+  subjectKey: string,
+  seriesId: string,
+  chapterId: string,
+  formData: FormData
+) {
   await requireAdmin();
   const title = String(formData.get("title") ?? "").trim();
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
+  const page = String(formData.get("page") ?? "").trim();
   const order = Number(formData.get("order") ?? 0) || 0;
   const durationRaw = String(formData.get("duration") ?? "").trim();
   const duration = durationRaw ? Number(durationRaw) : null;
-  if (!title || !videoUrl) return;
+  if (!title) return;
 
   await prisma.video.create({
-    data: { textbookId, title, videoUrl, order, duration },
+    data: { chapterId, title, videoUrl, page: page || null, order, duration },
   });
-  revalidatePath(`/admin/textbooks/${textbookId}`);
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${chapterId}`);
 }
 
-export async function updateVideo(videoId: string, formData: FormData) {
+export async function updateVideo(
+  subjectKey: string,
+  seriesId: string,
+  chapterId: string,
+  videoId: string,
+  formData: FormData
+) {
   await requireAdmin();
   const title = String(formData.get("title") ?? "").trim();
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
+  const page = String(formData.get("page") ?? "").trim();
   const order = Number(formData.get("order") ?? 0) || 0;
   const durationRaw = String(formData.get("duration") ?? "").trim();
   const duration = durationRaw ? Number(durationRaw) : null;
 
-  const video = await prisma.video.update({
+  await prisma.video.update({
     where: { id: videoId },
-    data: { title, videoUrl, order, duration },
+    data: { title, videoUrl, page: page || null, order, duration },
   });
-  revalidatePath(`/admin/textbooks/${video.textbookId}`);
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${chapterId}`);
 }
 
-export async function deleteVideo(videoId: string) {
+export async function deleteVideo(
+  subjectKey: string,
+  seriesId: string,
+  chapterId: string,
+  videoId: string
+) {
   await requireAdmin();
-  const video = await prisma.video.delete({ where: { id: videoId } });
-  revalidatePath(`/admin/textbooks/${video.textbookId}`);
+  await prisma.video.delete({ where: { id: videoId } });
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${chapterId}`);
 }

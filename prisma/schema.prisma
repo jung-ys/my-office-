@@ -1,5 +1,6 @@
-// 학원 문법영상 학습 사이트 - 데이터 모델
-// 학생(Student), 교재(Textbook), 영상(Video), 진도(Progress)
+// 학원 문법·독해 영상 학습 사이트 - 데이터 모델
+// 구조: Subject(과목: 문법/독해) → Series(교재 시리즈) → Chapter(챕터/권/유닛) → Video(강의 영상)
+// 학생(Student)은 이름+PIN으로 로그인하고, Progress로 시청 여부를 기록한다.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,51 +11,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 학생: 이름을 목록에서 선택해 로그인. pin은 선택사항(비워두면 이름만으로 입장)
+// 학생: 이름 선택 + 4자리 PIN으로 로그인
 model Student {
-  id                String     @id @default(cuid())
-  name              String
-  pin               String? // 4자리 숫자 등, 없으면 이름만으로 로그인
-  currentTextbookId String? // 마지막으로 선택한 교재 (오늘의 학습 기준)
-  currentTextbook   Textbook?  @relation(fields: [currentTextbookId], references: [id], onDelete: SetNull)
-  createdAt         DateTime   @default(now())
-  progress          Progress[]
+  id        String     @id @default(cuid())
+  name      String
+  pin       String // 4자리 숫자 (로그인 시 확인)
+  createdAt DateTime   @default(now())
+  progress  Progress[]
 }
 
-// 교재: 아이가 선택하면 그 안의 영상들이 순서대로 연결됨
-model Textbook {
-  id        String   @id @default(cuid())
+// 과목: "문법 영상" / "독해 지문 영상" 두 가지. 관리자가 추가로 늘릴 수도 있음
+model Subject {
+  id     String   @id @default(cuid())
+  key    String   @unique // "grammar", "reading" 등 URL에 쓰이는 값
+  label  String // "문법 영상"
+  icon   String   @default("📘") // 목록에 표시할 이모지
+  order  Int      @default(0)
+  series Series[]
+}
+
+// 시리즈: 교재 한 세트 (예: "777 초등영문법", "리더스뱅크2")
+model Series {
+  id        String    @id @default(cuid())
+  subjectId String
+  subject   Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   title     String
-  order     Int      @default(0) // 목록 표시 순서
-  createdAt DateTime @default(now())
-  videos    Video[]
-  students  Student[]
+  order     Int       @default(0)
+  chapters  Chapter[]
 }
 
-// 영상: 특정 교재에 속하며 교재 내 순서(order)를 가짐
+// 챕터: 시리즈 안의 권/챕터/유닛 (예: "3권", "CH01 be동사와 인칭대명사", "Unit 01")
+model Chapter {
+  id       String  @id @default(cuid())
+  seriesId String
+  series   Series  @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int     @default(0)
+  videos   Video[]
+}
+
+// 영상: 챕터에 속한 실제 강의 하나
 model Video {
-  id         String     @id @default(cuid())
-  textbookId String
-  textbook   Textbook   @relation(fields: [textbookId], references: [id], onDelete: Cascade)
-  title      String
-  order      Int        @default(0) // 교재 내 순서 (자동 진도 판단 기준)
-  videoUrl   String // 네이버 마이박스 공유 링크
-  duration   Int? // 분 단위, 선택
-  createdAt  DateTime   @default(now())
-  progress   Progress[]
+  id        String     @id @default(cuid())
+  chapterId String
+  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title     String
+  page      String? // 교재 페이지, 선택 (예: "p.14")
+  order     Int        @default(0) // 챕터 내 순서
+  videoUrl  String // 네이버 마이박스/유튜브 등 공유 링크. 비어있으면 "준비 중"
+  duration  Int? // 분 단위, 선택
+  createdAt DateTime   @default(now())
+  progress  Progress[]
 }
 
 // 진도: 학생별 영상 시청 여부. 복습해도 최초 시청일은 유지하고 마지막 시청일만 갱신
 model Progress {
-  id           String    @id @default(cuid())
-  studentId    String
-  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  videoId      String
-  video        Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
-  watched      Boolean   @default(false)
+  id             String    @id @default(cuid())
+  studentId      String
+  student        Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  videoId        String
+  video          Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  watched        Boolean   @default(false)
   firstWatchedAt DateTime?
   lastWatchedAt  DateTime?
-  reviewCount  Int       @default(0) // 복습(재시청) 횟수
+  reviewCount    Int       @default(0) // 복습(재시청) 횟수
 
   @@unique([studentId, videoId])
 }

@@ -15,12 +15,15 @@ export default async function VideoPlayerPage({
   const { id } = await params;
   const video = await prisma.video.findUnique({
     where: { id },
-    include: { textbook: true, progress: { where: { studentId: student.id } } },
+    include: {
+      chapter: { include: { series: { include: { subject: true } } } },
+      progress: { where: { studentId: student.id } },
+    },
   });
   if (!video) notFound();
 
   const siblings = await prisma.video.findMany({
-    where: { textbookId: video.textbookId },
+    where: { chapterId: video.chapterId },
     orderBy: { order: "asc" },
   });
   const idx = siblings.findIndex((v) => v.id === video.id);
@@ -29,43 +32,53 @@ export default async function VideoPlayerPage({
 
   const progress = video.progress[0];
   const watched = progress?.watched ?? false;
+  const hasUrl = video.videoUrl && video.videoUrl.trim() !== "";
+
+  const chapterHref = `/student/subjects/${video.chapter.series.subject.key}/series/${video.chapter.series.id}/chapters/${video.chapter.id}`;
 
   return (
     <div className="flex flex-col gap-5 py-6">
       <div>
-        <Link
-          href={`/student/textbooks/${video.textbookId}`}
-          className="text-xs text-indigo-600 underline"
-        >
-          ← {video.textbook.title} 목록으로
+        <Link href={chapterHref} className="text-xs text-indigo-600 underline">
+          ← {video.chapter.series.title} · {video.chapter.title} 목록으로
         </Link>
-        <h1 className="mt-1 text-lg font-bold text-zinc-900">{video.title}</h1>
+        <h1 className="mt-1 text-lg font-bold text-zinc-900">
+          {video.title}
+          {video.page && <span className="ml-2 text-xs font-normal text-zinc-400">{video.page}</span>}
+        </h1>
         {video.duration && <p className="text-xs text-zinc-500">약 {video.duration}분</p>}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-black">
-        <div className="aspect-video w-full">
-          <iframe
-            src={video.videoUrl}
-            className="h-full w-full"
-            allow="autoplay; fullscreen"
-            allowFullScreen
-            title={video.title}
-          />
+      {hasUrl ? (
+        <>
+          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-black">
+            <div className="aspect-video w-full">
+              <iframe
+                src={video.videoUrl}
+                className="h-full w-full"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+                title={video.title}
+              />
+            </div>
+          </div>
+          <p className="text-center text-xs text-zinc-400">
+            영상이 안 보이면 마이박스 임베드가 막혀있을 수 있어요.{" "}
+            <a
+              href={video.videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-indigo-600 underline"
+            >
+              새 탭에서 영상 보기 →
+            </a>
+          </p>
+        </>
+      ) : (
+        <div className="flex aspect-video w-full items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50">
+          <p className="text-sm text-zinc-400">아직 영상 링크가 등록되지 않았어요 (준비 중)</p>
         </div>
-      </div>
-
-      <p className="text-center text-xs text-zinc-400">
-        영상이 안 보이면 마이박스 임베드가 막혀있을 수 있어요.{" "}
-        <a
-          href={video.videoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-indigo-600 underline"
-        >
-          새 탭에서 영상 보기 →
-        </a>
-      </p>
+      )}
 
       <div className="flex flex-col items-center gap-3">
         {watched ? (

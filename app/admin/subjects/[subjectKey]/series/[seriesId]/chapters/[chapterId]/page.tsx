@@ -2,48 +2,59 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
-import { createVideo, deleteVideo, updateVideo } from "../../actions";
+import { createVideo, deleteVideo, updateVideo } from "../../../../../../actions";
 
-export default async function AdminTextbookPage({
+export default async function AdminChapterPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ subjectKey: string; seriesId: string; chapterId: string }>;
 }) {
-  if (!(await isAdmin())) {
-    redirect("/admin");
+  if (!(await isAdmin())) redirect("/admin");
+
+  const { subjectKey, seriesId, chapterId } = await params;
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: chapterId },
+    include: {
+      series: { include: { subject: true } },
+      videos: { orderBy: { order: "asc" } },
+    },
+  });
+  if (!chapter || chapter.series.id !== seriesId || chapter.series.subject.key !== subjectKey) {
+    notFound();
   }
 
-  const { id } = await params;
-  const textbook = await prisma.textbook.findUnique({
-    where: { id },
-    include: { videos: { orderBy: { order: "asc" } } },
-  });
-  if (!textbook) notFound();
+  const boundCreate = createVideo.bind(null, subjectKey, seriesId, chapterId);
+  const boundUpdate = updateVideo.bind(null, subjectKey, seriesId, chapterId);
+  const boundDelete = deleteVideo.bind(null, subjectKey, seriesId, chapterId);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <div>
-        <Link href="/admin" className="text-xs text-indigo-600 underline">
-          ← 관리자 홈
+        <Link
+          href={`/admin/subjects/${subjectKey}/series/${seriesId}`}
+          className="text-xs text-indigo-600 underline"
+        >
+          ← {chapter.series.title} 챕터 목록
         </Link>
-        <h1 className="mt-1 text-xl font-bold">📘 {textbook.title} — 영상 관리</h1>
+        <h1 className="mt-1 text-xl font-bold">
+          {chapter.series.title} · {chapter.title} — 영상 관리
+        </h1>
       </div>
 
       <div className="flex flex-col gap-3">
-        {textbook.videos.map((v) => (
-          <details
-            key={v.id}
-            className="rounded-lg border border-zinc-200 bg-white px-4 py-3"
-          >
+        {chapter.videos.map((v) => (
+          <details key={v.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
             <summary className="flex cursor-pointer items-center justify-between font-medium text-zinc-800">
               <span>
                 {v.order}. {v.title}
               </span>
-              <span className="text-xs text-zinc-400">{v.duration ? `${v.duration}분` : ""}</span>
+              <span className="text-xs text-zinc-400">
+                {v.videoUrl ? "✅ 링크 있음" : "⏳ 준비 중"}
+              </span>
             </summary>
 
             <form
-              action={updateVideo.bind(null, v.id)}
+              action={boundUpdate.bind(null, v.id)}
               className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3"
             >
               <label className="text-xs text-zinc-500">
@@ -56,15 +67,24 @@ export default async function AdminTextbookPage({
                 />
               </label>
               <label className="text-xs text-zinc-500">
-                네이버 마이박스 공유 링크
+                영상 링크 (네이버 마이박스, 유튜브 등)
                 <input
                   name="videoUrl"
                   defaultValue={v.videoUrl}
+                  placeholder="비워두면 학생 화면에 '준비 중'으로 표시돼요"
                   className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                  required
                 />
               </label>
               <div className="flex gap-2">
+                <label className="flex-1 text-xs text-zinc-500">
+                  교재 페이지
+                  <input
+                    name="page"
+                    defaultValue={v.page ?? ""}
+                    placeholder="p.14"
+                    className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                </label>
                 <label className="flex-1 text-xs text-zinc-500">
                   순서
                   <input
@@ -86,7 +106,7 @@ export default async function AdminTextbookPage({
               </div>
               <div className="mt-1 flex justify-end gap-3">
                 <button
-                  formAction={deleteVideo.bind(null, v.id)}
+                  formAction={boundDelete.bind(null, v.id)}
                   className="text-sm text-red-500 hover:underline"
                 >
                   삭제
@@ -98,34 +118,38 @@ export default async function AdminTextbookPage({
             </form>
           </details>
         ))}
-        {textbook.videos.length === 0 && (
+        {chapter.videos.length === 0 && (
           <p className="text-sm text-zinc-400">아직 등록된 영상이 없어요.</p>
         )}
       </div>
 
       <form
-        action={createVideo.bind(null, textbook.id)}
+        action={boundCreate}
         className="flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-4"
       >
         <p className="text-sm font-semibold text-zinc-700">➕ 새 영상 추가</p>
         <input
           name="title"
-          placeholder="영상 제목 (예: 5강. 현재완료)"
+          placeholder="영상 제목 (예: UNIT1. be동사가 있는 문장)"
           className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           required
         />
         <input
           name="videoUrl"
-          placeholder="네이버 마이박스 공유 링크"
+          placeholder="영상 링크 (없으면 비워두세요)"
           className="rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          required
         />
         <div className="flex gap-2">
+          <input
+            name="page"
+            placeholder="교재 페이지 (선택)"
+            className="w-32 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
           <input
             name="order"
             type="number"
             placeholder="순서"
-            defaultValue={textbook.videos.length + 1}
+            defaultValue={chapter.videos.length}
             className="w-24 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
           <input

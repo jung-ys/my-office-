@@ -2,51 +2,47 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getStudentSession } from "@/lib/auth";
-import { getTextbookVideosWithProgress } from "@/lib/progress";
+import { getChapterVideosWithProgress } from "@/lib/progress";
 
-export default async function TextbookDetailPage({
+export default async function ChapterVideoListPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ subjectKey: string; seriesId: string; chapterId: string }>;
 }) {
   const student = await getStudentSession();
   if (!student) return null;
 
-  const { id } = await params;
-  const textbook = await prisma.textbook.findUnique({ where: { id } });
-  if (!textbook) notFound();
-
-  // 이 교재를 아직 "현재 교재"로 선택하지 않았다면 자동으로 선택 처리
-  if (student.currentTextbookId !== textbook.id) {
-    await prisma.student.update({
-      where: { id: student.id },
-      data: { currentTextbookId: textbook.id },
-    });
+  const { subjectKey, seriesId, chapterId } = await params;
+  const chapter = await prisma.chapter.findUnique({
+    where: { id: chapterId },
+    include: { series: { include: { subject: true } } },
+  });
+  if (!chapter || chapter.series.id !== seriesId || chapter.series.subject.key !== subjectKey) {
+    notFound();
   }
 
-  const videos = await getTextbookVideosWithProgress(textbook.id, student.id);
+  const videos = await getChapterVideosWithProgress(chapterId, student.id);
   const firstUnwatchedIndex = videos.findIndex((v) => !v.watched);
 
   return (
     <div className="flex flex-col gap-4 py-6">
       <div>
-        <Link href="/student/textbooks" className="text-xs text-indigo-600 underline">
-          ← 다른 교재 선택
+        <Link
+          href={`/student/subjects/${subjectKey}/series/${seriesId}`}
+          className="text-xs text-indigo-600 underline"
+        >
+          ← {chapter.series.title} 챕터 목록으로
         </Link>
-        <h1 className="mt-1 text-lg font-bold text-zinc-900">📘 {textbook.title}</h1>
+        <h1 className="mt-1 text-lg font-bold text-zinc-900">
+          {chapter.series.title} · {chapter.title}
+        </h1>
       </div>
 
       <ol className="relative flex flex-col">
         {videos.map((v, idx) => {
           const isToday = idx === firstUnwatchedIndex;
           return (
-            <li key={v.id} className="relative flex gap-3 pb-6">
-              {idx < videos.length - 1 && (
-                <span
-                  className="absolute left-[15px] top-8 h-full w-0.5 bg-zinc-200"
-                  aria-hidden
-                />
-              )}
+            <li key={v.id} className="relative flex gap-3 pb-4">
               <div
                 className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                   v.watched
@@ -68,10 +64,14 @@ export default async function TextbookDetailPage({
                 }`}
               >
                 <div>
-                  <p className="font-medium text-zinc-900">{v.title}</p>
+                  <p className="font-medium text-zinc-900">
+                    {v.title}
+                    {v.page && <span className="ml-2 text-xs text-zinc-400">{v.page}</span>}
+                  </p>
                   <p className="mt-0.5 text-xs text-zinc-400">
                     {v.duration ? `약 ${v.duration}분` : ""}
                     {v.watched && v.reviewCount > 0 ? ` · 복습 ${v.reviewCount}회` : ""}
+                    {!v.videoUrl && " · 준비 중"}
                   </p>
                 </div>
                 {isToday && (
@@ -89,7 +89,7 @@ export default async function TextbookDetailPage({
           );
         })}
         {videos.length === 0 && (
-          <p className="text-zinc-500">이 교재에는 아직 등록된 영상이 없어요.</p>
+          <p className="text-zinc-500">이 챕터에는 아직 등록된 영상이 없어요.</p>
         )}
       </ol>
     </div>

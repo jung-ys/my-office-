@@ -22,8 +22,8 @@ export default async function Home({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-zinc-900">📚 문법영상 학습</h1>
-        <p className="mt-2 text-zinc-500">내 이름을 눌러서 오늘의 학습을 시작해요</p>
+        <h1 className="text-2xl font-bold text-zinc-900">📚 삼성영어 셀레나 삼양캠퍼스</h1>
+        <p className="mt-2 text-zinc-500">내 이름을 누르고 비밀번호를 입력해 오늘의 학습을 시작해요</p>
       </div>
 
       {error && (
@@ -31,7 +31,7 @@ export default async function Home({
       )}
 
       <LoginBoard
-        students={students.map((s) => ({ id: s.id, name: s.name, hasPin: !!s.pin }))}
+        students={students.map((s) => ({ id: s.id, name: s.name }))}
       />
 
       <a href="/admin" className="text-xs text-zinc-400 underline underline-offset-2">
