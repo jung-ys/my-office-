@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강의 목록</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
+<style>
+  /* =========================================================
+     여기부터는 디자인(모양) 관련 코드입니다.
+     보통은 안 건드리셔도 됩니다. (건드리지 않아도 문제 없어요)
+     ========================================================= */
+  :root{
+    --bg:#f6f7fb;
+    --surface:#ffffff;
+    --surface-2:#f1f2f8;
+    --border:#e3e5ee;
+    --text:#20222c;
+    --text-dim:#6b6f80;
+    --accent:#4f46e5;
+    --accent-dim:#eef0fd;
+    --accent-text:#3730a3;
+    --green:#0f9d6b;
+    --green-bg:#e8f8f1;
+    --muted-bg:#f0f0f4;
+    --muted-text:#8b8fa3;
+    --shadow: 0 1px 2px rgba(20,22,40,.04), 0 6px 20px rgba(20,22,40,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14151c;
+      --surface:#1c1e28;
+      --surface-2:#22242f;
+      --border:#2c2f3d;
+      --text:#e7e8f0;
+      --text-dim:#9598ab;
+      --accent:#8b85f7;
+      --accent-dim:#26243d;
+      --accent-text:#c7c3ff;
+      --green:#3ddc9b;
+      --green-bg:#123227;
+      --muted-bg:#23242e;
+      --muted-text:#6d7086;
+      --shadow: 0 1px 2px rgba(0,0,0,.2), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:24px 16px 80px; }
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:22px; flex-wrap:wrap;
+  }
+  header.top h1{
+    font-size:1.25rem; margin:0; font-weight:800; letter-spacing:-.01em;
+  }
+  .who{ font-size:.85rem; color:var(--text-dim); display:flex; gap:10px; align-items:center; }
+  .who button{
+    border:none; background:none; color:var(--accent); font-size:.85rem;
+    cursor:pointer; padding:2px 0; text-decoration:underline; text-underline-offset:2px;
+  }
+
+  /* 로그인 화면 */
+  #loginScreen{ text-align:center; padding:60px 8px; }
+  #loginScreen h2{ font-size:1.15rem; margin:0 0 6px; }
+  #loginScreen p{ color:var(--text-dim); margin:0 0 26px; font-size:.92rem; }
+  .name-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(110px,1fr));
+    gap:10px; max-width:420px; margin:0 auto;
+  }
+  .name-btn{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 10px; font-size:1rem; font-weight:700; color:var(--text);
+    cursor:pointer; box-shadow:var(--shadow); transition:.15s;
+  }
+  .name-btn:hover{ border-color:var(--accent); background:var(--accent-dim); }
+  .name-btn.is-extra{ border-style:dashed; }
+
+  .add-student-area{ margin-top:22px; }
+  .add-student-toggle{
+    border:1px dashed var(--border); background:none; color:var(--text-dim);
+    font-size:.82rem; padding:8px 16px; border-radius:999px; cursor:pointer;
+  }
+  .add-student-toggle:hover{ color:var(--accent); border-color:var(--accent); }
+  .add-student-form{
+    display:flex; gap:6px; justify-content:center; margin-top:10px; flex-wrap:wrap;
+  }
+  .add-student-form input{
+    border:1px solid var(--border); background:var(--surface); color:var(--text);
+    border-radius:10px; padding:8px 10px; font-size:.9rem; width:160px;
+  }
+  .add-student-form button{
+    border:none; border-radius:10px; padding:8px 14px; font-size:.85rem; font-weight:700;
+    cursor:pointer;
+  }
+  .add-student-form button#confirmAddStudentBtn{ background:var(--accent); color:#fff; }
+  .add-student-form button#cancelAddStudentBtn{ background:var(--muted-bg); color:var(--text-dim); }
+  .add-student-hint{
+    max-width:340px; margin:12px auto 0; font-size:.72rem; color:var(--muted-text); line-height:1.5;
+  }
+  .add-student-hint code{ background:var(--muted-bg); padding:1px 5px; border-radius:5px; }
+
+  /* 과목(문법/독해) 탭 */
+  .tabs{ display:flex; gap:8px; margin-bottom:16px; }
+  .tab-btn{
+    flex:1; padding:14px 10px; border-radius:14px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text); font-size:.95rem; font-weight:700;
+    cursor:pointer; box-shadow:var(--shadow); text-align:center;
+  }
+  .tab-btn small{ display:block; font-weight:500; color:var(--text-dim); margin-top:3px; font-size:.75rem; }
+  .tab-btn.active{ border-color:var(--accent); background:var(--accent-dim); color:var(--accent-text); }
+  .tab-btn.active small{ color:var(--accent-text); opacity:.75; }
+
+  .summary{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:12px;
+    padding:10px 14px; font-size:.88rem; color:var(--text-dim); margin-bottom:20px;
+  }
+  .summary b{ color:var(--text); }
+  .summary .dot{ opacity:.5; }
+
+  details.chapter{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    margin-bottom:10px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  details.chapter > summary{
+    list-style:none; cursor:pointer; padding:14px 16px; font-weight:700;
+    font-size:.95rem; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  details.chapter > summary::-webkit-details-marker{ display:none; }
+  details.chapter > summary .cnt{ font-weight:500; color:var(--text-dim); font-size:.78rem; white-space:nowrap; }
+  details.chapter > summary::before{
+    content:"▸"; color:var(--accent); font-size:.8rem; transition:transform .15s;
+  }
+  details.chapter[open] > summary::before{ transform:rotate(90deg); }
+
+  .lesson-list{ border-top:1px solid var(--border); }
+  .lesson{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 16px; border-bottom:1px solid var(--border);
+  }
+  .lesson:last-child{ border-bottom:none; }
+  .lesson-title{ font-size:.9rem; }
+  .lesson-title .page{
+    display:inline-block; margin-left:6px; font-size:.72rem; color:var(--muted-text);
+    background:var(--muted-bg); border-radius:6px; padding:1px 6px;
+  }
+  .lesson-title .grammar-tag{
+    display:inline-block; margin-right:6px; font-size:.7rem; font-weight:700;
+    color:var(--accent-text); background:var(--accent-dim); border-radius:6px; padding:1px 6px;
+  }
+  .watch-btn{
+    flex-shrink:0; text-decoration:none; font-size:.82rem; font-weight:700;
+    padding:7px 12px; border-radius:999px; white-space:nowrap;
+    background:var(--green-bg); color:var(--green); border:1px solid transparent;
+  }
+  .watch-btn:hover{ filter:brightness(0.97); }
+  .soon{
+    flex-shrink:0; font-size:.78rem; font-weight:600; color:var(--muted-text);
+    background:var(--muted-bg); padding:6px 12px; border-radius:999px; white-space:nowrap;
+  }
+
+  footer.note{ text-align:center; color:var(--muted-text); font-size:.75rem; margin-top:30px; }
+
+  #mainScreen{ display:none; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="top">
+    <h1 id="siteTitleHeader">강의 목록</h1>
+    <div class="who" id="whoBox" style="display:none;">
+      <span id="whoText"></span>
+      <button id="switchUserBtn" type="button">다른 학생으로 보기</button>
+    </div>
+  </header>
+
+  <!-- 로그인 화면: 학생 이름을 눌러 입장 -->
+  <div id="loginScreen">
+    <h2>안녕하세요 👋</h2>
+    <p>내 이름을 눌러서 들어가세요</p>
+    <div class="name-grid" id="nameGrid"></div>
+
+    <div class="add-student-area">
+      <button type="button" id="showAddStudentBtn" class="add-student-toggle">+ 새 학생 등록</button>
+      <div id="addStudentForm" class="add-student-form" style="display:none;">
+        <input type="text" id="newStudentInput" placeholder="학생 이름 입력" maxlength="20">
+        <button type="button" id="confirmAddStudentBtn">등록</button>
+        <button type="button" id="cancelAddStudentBtn">취소</button>
+      </div>
+      <p class="add-student-hint">여기서 등록한 학생은 <b>이 기기(브라우저)</b>에서만 보여요. 모든 컴퓨터·휴대폰에서 항상 보이게 하려면 파일 위쪽 <code>STUDENTS</code> 목록에도 이름을 추가해주세요.</p>
+    </div>
+  </div>
+
+  <!-- 로그인 후 메인 화면: 문법/독해 탭 + 강의 목록 -->
+  <div id="mainScreen">
+    <div class="tabs" id="tabBox"></div>
+    <div class="summary" id="summaryBox"></div>
+    <div id="chapterBox"></div>
+  </div>
+
+  <footer class="note">영상 링크가 없는 강의는 “준비 중”으로 표시돼요. 선생님이 링크를 채워주시면 자동으로 “▶ 영상 보기” 버튼이 생겨요.</footer>
+</div>
+
+
+<script>
+/* =====================================================================
+   ▼▼▼ 여기부터 "데이터 영역" 입니다 — 프로그래밍을 몰라도 이 부분만
+   고치시면 됩니다. 아래 안내를 읽고 원하는 곳을 수정하세요. ▼▼▼
+   =====================================================================
+
+   [1] 사이트 제목(학원/강좌 이름) 바꾸기
+       → 바로 아래 SITE_TITLE 의 따옴표 안 글자만 바꾸세요.
+
+   [2] 로그인할 학생 이름 바꾸기 / 추가 / 삭제
+       → STUDENTS 배열 안에 "이름" 을 쉼표(,)로 구분해서 넣어주세요.
+         이름을 추가하려면:   "홍길동",
+         이름을 지우려면: 그 줄을 통째로 지우면 됩니다.
+
+   [3] 강의(챕터/소단원) 추가 · 수정 · 삭제
+       → 아래 SUBJECTS 안에 "문법"과 "독해" 두 과목이 있고,
+         각 과목 안에는 chapters(챕터=대단원) 배열이 있습니다.
+         각 챕터는 { title: "챕터 이름", lessons: [ ... ] } 형태이고,
+         lessons 안에 강의(소단원)를 하나씩 아래처럼 넣으면 됩니다:
+
+           { title: "1강. be동사란 무엇인가", page: "p.10", url: "" }
+
+         - title : 강의 제목 (필수)
+         - page  : 교재 페이지 (선택, 없으면 그냥 "" 로 두거나 그 줄을 지워도 됨)
+         - url   : 영상 링크 (선택). 네이버 마이박스나 유튜브 등 링크를
+                   따옴표 안에 붙여넣으면 자동으로 "▶ 영상 보기" 버튼이 생깁니다.
+                   비워두면( "" ) "준비 중"으로 표시됩니다.
+
+       ※ 새 강의를 추가할 때는 바로 위/아래 줄의 { ... } 형태를 그대로
+         복사해서 title/page/url 안의 내용만 바꾸면 안전합니다.
+         (중괄호 { }, 쉼표 , 는 지우지 않도록 주의해주세요)
+   ===================================================================== */
+
+  // ---------- [1] 페이지 제목 ----------
+  const SITE_TITLE = "삼성영어 셀레나 삼양캠퍼스";
+
+  // ---------- [2] 로그인할 학생 이름 목록 (기본 명단) ----------
+  //  여기 적힌 이름은 모든 기기(컴퓨터/휴대폰)에서 항상 보입니다.
+  //  수업 중 새로 등록하는 학생은 아래쪽 "+ 새 학생 등록" 버튼으로도
+  //  추가할 수 있어요 (다만 그 버튼으로 추가한 이름은 등록한 그 기기의
+  //  브라우저에만 저장돼요). 계속 모든 기기에 남기고 싶은 학생은
+  //  이 목록에 이름을 직접 추가해주는 게 가장 확실합니다.
+  const STUDENTS = [
+    "김라이", "강승현", "김효진", "오지혜", "이시은",
+    "손유찬", "김아영", "박서은", "양정후", "박승빈", "차유준"
+  ];
+
+  // ---------- [3] 과목별 강의 목록 ----------
+  const SUBJECTS = [
+    {
+      key: "grammar",
+      label: "문법 영상",
+      icon: "📖",
+      chapters: [
+        // ================= 777 초등영문법 시리즈 (0권 ~ 6권) =================
+        { title: "777 초등영문법 0권", lessons: [
+          { title: "01. 명사! 모든 것들의 이름", url: "" },
+          { title: "02. 강아지가 한 마리면 a dog, 여러 마리면 dogs", url: "" },
+          { title: "03. 명사의 복수형", url: "" },
+          { title: "04. 셀 수 없는 명사", url: "" },
+          { title: "05. 주격 대명사 I, We, You", url: "" },
+          { title: "06. 주격 대명사 He, She, They, It", url: "" },
+          { title: "07. 목적격 대명사", url: "" },
+          { title: "08. 소유격 대명사", url: "" },
+          { title: "09. 지시대명사", url: "" },
+          { title: "10. be동사 '(~이)다'", url: "" },
+          { title: "11. be동사 '(~에) 있다'", url: "" },
+          { title: "12. be동사의 부정문", url: "" },
+          { title: "13. be동사로 묻고 답하기", url: "" },
+          { title: "14. 일반동사", url: "" },
+          { title: "15. 일반동사의 부정문", url: "" }
+        ]},
+        { title: "777 초등영문법 1권", lessons: [
+          { title: "01. 문장의 순서", url: "" },
+          { title: "02. 명사! 모든 것들의 이름", url: "" },
+          { title: "03. 셀 수 없는 명사", url: "" },
+          { title: "04. 셀 수 있는 명사의 복수형", url: "" },
+          { title: "05. 관사! 명사의 짝꿍", url: "" },
+          { title: "06. 인칭대명사", url: "" },
+          { title: "07. 지시대명사", url: "" },
+          { title: "08. be동사", url: "" },
+          { title: "09. 일반동사의 현재형", url: "" },
+          { title: "10. 일반동사의 3인칭 단수형", url: "" },
+          { title: "11. be동사의 부정문", url: "" },
+          { title: "12. 일반동사의 부정문", url: "" },
+          { title: "13. be동사로 묻고 답하기", url: "" },
+          { title: "14. 일반동사로 묻고 답하기", url: "" },
+          { title: "15. 의문사로 의문문 만들기", url: "" }
+        ]},
+        { title: "777 초등영문법 2권", lessons: [
+          { title: "01. 동사를 돕는 조동사", url: "" },
+          { title: "02. 할 수 있어! can", url: "" },
+          { title: "03. 꼭 해야 해! must", url: "" },
+          { title: "04. be동사 과거형", url: "" },
+          { title: "05. 일반동사 과거형", url: "" },
+          { title: "06. 꾸미고 설명하는 형용사", url: "" },
+          { title: "07. 꾸미기 대장, 부사", url: "" },
+          { title: "08. '해라!' 명령문", url: "" },
+          { title: "09. '하지 마!' 부정 명령문", url: "" },
+          { title: "10. '함께 해' 청유문", url: "" },
+          { title: "11. 숫자 나타내기", url: "" },
+          { title: "12. 비인칭주어 it", url: "" },
+          { title: "13. 시간 묻고 답하기", url: "" },
+          { title: "14. 날짜와 요일 말하기", url: "" },
+          { title: "15. 가격 묻고 답하기", url: "" }
+        ]},
+        { title: "777 초등영문법 3권", lessons: [
+          { title: "01. 명사", url: "" },
+          { title: "02. 명사를 대신하는 대명사", url: "" },
+          { title: "03. 영어의 8품사", url: "" },
+          { title: "04. 문장의 주부와 술부", url: "" },
+          { title: "05. 영어 문장의 종류", url: "" },
+          { title: "06. 과거를 나타내는 문장", url: "" },
+          { title: "07. 일반동사의 불규칙 과거형", url: "" },
+          { title: "08. 현재진행형", url: "" },
+          { title: "09. 과거진행형", url: "" },
+          { title: "10. 미래시제 will과 be going to", url: "" },
+          { title: "11. 형용사의 쓰임", url: "" },
+          { title: "12. 2형식 문장과 감각동사", url: "" },
+          { title: "13. 꾸며 주기 좋아하는 부사", url: "" },
+          { title: "14. 비교급 문장", url: "" },
+          { title: "15. 최상급 문장", url: "" }
+        ]},
+        { title: "777 초등영문법 4권", lessons: [
+          { title: "01. 회화에 잘 쓰이는 조동사 Can/Could", url: "" },
+          { title: "02. 회화에 잘 쓰이는 조동사 Will/Would", url: "" },
+          { title: "03. 회화에 잘 쓰이는 조동사 Shall", url: "" },
+          { title: "04. 회화에 잘 쓰이는 조동사 May", url: "" },
+          { title: "05. 회화에 잘 쓰이는 조동사 Must/Have to", url: "" },
+          { title: "06. many, much, a lot of", url: "" },
+          { title: "07. (a) few, (a) little", url: "" },
+          { title: "08. some, any", url: "" },
+          { title: "09. 숫자 묻고 답하기", url: "" },
+          { title: "10. 가격과 양, 거리 묻고 답하기", url: "" },
+          { title: "11. 문장을 이어주는 접속사", url: "" },
+          { title: "12. 시간의 전치사", url: "" },
+          { title: "13. 장소의 전치사", url: "" },
+          { title: "14. 방향의 전치사", url: "" },
+          { title: "15. There is ... / There are ...", url: "" }
+        ]},
+        { title: "777 초등영문법 5권", lessons: [
+          { title: "01. 문장의 5형식", url: "" },
+          { title: "02. 2형식 문장과 감각동사", url: "" },
+          { title: "03. 4형식 문장 → 3형식 문장", url: "" },
+          { title: "04. 5형식 문장", url: "" },
+          { title: "05. 부가의문문", url: "" },
+          { title: "06. 현재분사와 과거분사", url: "" },
+          { title: "07. 수동태 만들기", url: "" },
+          { title: "08. 수동태의 부정문과 의문문", url: "" },
+          { title: "09. 시간의 접속사 when / after / before", url: "" },
+          { title: "10. 기타 접속사 because / if", url: "" },
+          { title: "11. When으로 묻고 시간 전치사로 답하기", url: "" },
+          { title: "12. Where로 묻고 장소 전치사로 답하기", url: "" },
+          { title: "13. 접속부사와 접속사 as", url: "" },
+          { title: "14. 전치사 마무리하기", url: "" },
+          { title: "15. 명령문과 and / or", url: "" }
+        ]},
+        { title: "777 초등영문법 6권", lessons: [
+          { title: "01. 현재완료시제", url: "" },
+          { title: "02. 현재완료시제 용법 '완료, 계속'", url: "" },
+          { title: "03. 현재완료시제 용법 '결과, 경험'", url: "" },
+          { title: "04. 현재완료시제 의문문", url: "" },
+          { title: "05. 현재완료시제와 과거시제의 비교", url: "" },
+          { title: "06. 동명사의 역할과 동명사 만들기", url: "" },
+          { title: "07. 동명사와 함께 쓰는 동사들", url: "" },
+          { title: "08. to부정사의 역할과 to부정사 만들기", url: "" },
+          { title: "09. to부정사의 용법 - 명사, 형용사, 부사", url: "" },
+          { title: "10. to부정사와 함께 쓰는 동사들", url: "" },
+          { title: "11. 관계대명사", url: "" },
+          { title: "12. 관계대명사 '주격'", url: "" },
+          { title: "13. 관계대명사 '목적격'", url: "" },
+          { title: "14. 주의해야 할 관계대명사 용법과 what", url: "" },
+          { title: "15. 관계부사", url: "" }
+        ]},
+
+        // ================= 1316 중등문법1 =================
+        { title: "1316 중등문법1 · CH01 be동사와 인칭대명사", lessons: [
+          { title: "UNIT1. be동사가 있는 문장", page: "p.8", url: "" },
+          { title: "UNIT2. be동사가 있는 부정문과 의문문", page: "p.10", url: "" },
+          { title: "UNIT3. 인칭대명사", page: "p.12", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH02 일반동사", lessons: [
+          { title: "UNIT1. 일반동사의 의미와 형태", page: "p.18", url: "" },
+          { title: "UNIT2. 일반동사의 과거형", page: "p.20", url: "" },
+          { title: "UNIT3. 일반동사가 있는 부정문", page: "p.22", url: "" },
+          { title: "UNIT4. 일반동사가 있는 의문문", page: "p.24", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH03 명사와 관사", lessons: [
+          { title: "UNIT1. 셀 수 있는 명사와 셀 수 없는 명사", page: "p.30", url: "" },
+          { title: "UNIT2. 관사", page: "p.32", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH04 문장의 시제", lessons: [
+          { title: "UNIT1. 현재시제와 과거시제", page: "p.38", url: "" },
+          { title: "UNIT2. 진행형", page: "p.40", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH05 조동사", lessons: [
+          { title: "UNIT1. will", page: "p.46", url: "" },
+          { title: "UNIT2. can, may", page: "p.48", url: "" },
+          { title: "UNIT3. must, should", page: "p.50", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH06 의문사가 있는 의문문", lessons: [
+          { title: "UNIT1. 의문사 who, what, which", page: "p.56", url: "" },
+          { title: "UNIT2. 의문사 when, where, why", page: "p.58", url: "" },
+          { title: "UNIT3. 의문사 how", page: "p.60", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH07 기타 의문문 / 감탄문 / 명령문", lessons: [
+          { title: "UNIT1. 부가 의문문", page: "p.66", url: "" },
+          { title: "UNIT2. 부정 의문문, 선택 의문문", page: "p.68", url: "" },
+          { title: "UNIT3. 감탄문", page: "p.70", url: "" },
+          { title: "UNIT4. 명령문", page: "p.72", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH08 동사의 종류", lessons: [
+          { title: "UNIT1. 감각동사 + 형용사", page: "p.78", url: "" },
+          { title: "UNIT2. 수여동사 + 간접목적어 + 직접목적어", page: "p.80", url: "" },
+          { title: "UNIT3. 동사 + 목적어 + 목적격 보어", page: "p.82", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH09 to부정사와 동명사", lessons: [
+          { title: "UNIT1. to부정사의 명사적 용법", page: "p.88", url: "" },
+          { title: "UNIT2. to부정사의 형용사적 용법과 부사적 용법", page: "p.90", url: "" },
+          { title: "UNIT3. 동명사", page: "p.92", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH10 대명사", lessons: [
+          { title: "UNIT1. 재귀대명사, this/that, 비인칭 주어 it", page: "p.98", url: "" },
+          { title: "UNIT2. one, some, any", page: "p.100", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH11 형용사와 부사", lessons: [
+          { title: "UNIT1. 형용사의 역할", page: "p.106", url: "" },
+          { title: "UNIT2. 부사의 역할", page: "p.108", url: "" },
+          { title: "UNIT3. 비교 표현", page: "p.110", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH12 전치사", lessons: [
+          { title: "UNIT1. 시간의 전치사", page: "p.116", url: "" },
+          { title: "UNIT2. 장소의 전치사", page: "p.118", url: "" },
+          { title: "UNIT3. 기타 전치사", page: "p.120", url: "" }
+        ]},
+        { title: "1316 중등문법1 · CH13 접속사", lessons: [
+          { title: "UNIT1. and, but, or, so", page: "p.126", url: "" },
+          { title: "UNIT2. when, before, after, while", page: "p.128", url: "" },
+          { title: "UNIT3. because, if, that", page: "p.130", url: "" }
+        ]}
+      ]
+    },
+    {
+      key: "reading",
+      label: "독해 지문 영상",
+      icon: "📗",
+      chapters: [
+        // ================= 리더스뱅크 3 =================
+        // ※ 사진이 기울어져 있어 지문 제목 일부는 확실치 않을 수 있어요.
+        //    유닛 번호/페이지는 정확합니다. 확인 후 자유롭게 고쳐주세요.
+        //    (Key Words Preview / Review Test / Crossword Puzzle 등
+        //     본문 지문이 아닌 학습활동 페이지는 영상 목록에서 제외했어요.
+        //     필요하면 아래 lessons 안에 같은 형태로 추가하시면 됩니다.)
+        { title: "리더스뱅크3 · Unit 01", lessons: [
+          { title: "01. 나에게 너의 모든 비밀을 말해도 돼", page: "p.14", url: "" },
+          { title: "02. 학교생활이 힘들었다고?", page: "p.16", url: "" },
+          { title: "03. 카멜레온 페인트", page: "p.18", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 02", lessons: [
+          { title: "04. 새로운 왕은 누구?", page: "p.24", url: "" },
+          { title: "05. 회화형 왕 완전해체!", page: "p.26", url: "" },
+          { title: "06. (English Only) 사남환 우정의 아름다움", page: "p.28", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 03", lessons: [
+          { title: "07. 우리 고양이 좀 찾아 주세요!", page: "p.34", url: "" },
+          { title: "08. 열정의 채수", page: "p.36", url: "" },
+          { title: "09. 도움 주고받기의 이로움", page: "p.38", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 04", lessons: [
+          { title: "10. 처음 본 나 이야기", page: "p.44", url: "" },
+          { title: "11. 숨겨진 재능을 뽐내세요!", page: "p.46", url: "" },
+          { title: "12. (English Only) 미래의 반찬거리는 여기서 재배!", page: "p.48", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 05", lessons: [
+          { title: "13. 새로운 Superhero 탄생의 일화", page: "p.54", url: "" },
+          { title: "14. 자기 몸값을 알아내는 슬픔들", page: "p.56", url: "" },
+          { title: "15. 사람을 하나되게 만드는 어떤 개", page: "p.58", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 06", lessons: [
+          { title: "16. 곤충이 잃을 보는 법", page: "p.64", url: "" },
+          { title: "17. 물고기 예쁘게 씻는 일?", page: "p.66", url: "" },
+          { title: "18. (English Only) 고양이도 훈련이 되나요!", page: "p.68", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 07", lessons: [
+          { title: "19. 크리스마스트리의 유래", page: "p.74", url: "" },
+          { title: "20. 우리 몸의 세포 재생 주기!", page: "p.76", url: "" },
+          { title: "21. \"Go Banana!\"", page: "p.78", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 08", lessons: [
+          { title: "22. 홍수로 괴로운 곰!", page: "p.84", url: "" },
+          { title: "23. 영원히 빛나는 방울꽃", page: "p.86", url: "" },
+          { title: "24. (English Only) 영양이 죽지 않는 유일한 방법", page: "p.88", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 09", lessons: [
+          { title: "25. 제로 칼로리 음료의 비밀", page: "p.94", url: "" },
+          { title: "26. 위대한 영웅, 개코원숭이", page: "p.96", url: "" },
+          { title: "27. 인간의 이기심, 지구의 응답", page: "p.98", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 10", lessons: [
+          { title: "28. 엄마 동물이 지친 대처법", page: "p.104", url: "" },
+          { title: "29. 별의 일생", page: "p.106", url: "" },
+          { title: "30. (English Only) 가나의 장례 풍습", page: "p.108", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 11", lessons: [
+          { title: "31. 못난이 채소들의 멋진 다짐", page: "p.114", url: "" },
+          { title: "32. 수컷 물고기가 사라지고 있어!", page: "p.116", url: "" },
+          { title: "33. 홍-사랑의 옹 이야기", page: "p.118", url: "" }
+        ]},
+        { title: "리더스뱅크3 · Unit 12", lessons: [
+          { title: "34. 기억력 마법의 비결", page: "p.124", url: "" },
+          { title: "35. (English Only) 자연 최고의 건축가, 흰개미", page: "p.126", url: "" },
+          { title: "36. \"Mentor\"의 기원", page: "p.128", url: "" }
+        ]}
+      ]
+    }
+  ];
+
+  /* =====================================================================
+     ▲▲▲ 데이터 영역 끝. 여기부터 아래는 화면을 그려주는 코드라
+     특별히 손대실 필요는 없습니다. ▲▲▲
+     ===================================================================== */
+
+  const LS_KEY = "lecture_page_student_name";
+  const LS_EXTRA_STUDENTS_KEY = "lecture_page_extra_students";
+
+  const $ = (sel) => document.querySelector(sel);
+  const siteTitleHeader = $("#siteTitleHeader");
+  const loginScreen = $("#loginScreen");
+  const mainScreen = $("#mainScreen");
+  const nameGrid = $("#nameGrid");
+  const whoBox = $("#whoBox");
+  const whoText = $("#whoText");
+  const tabBox = $("#tabBox");
+  const summaryBox = $("#summaryBox");
+  const chapterBox = $("#chapterBox");
+  const showAddStudentBtn = $("#showAddStudentBtn");
+  const addStudentForm = $("#addStudentForm");
+  const newStudentInput = $("#newStudentInput");
+  const confirmAddStudentBtn = $("#confirmAddStudentBtn");
+  const cancelAddStudentBtn = $("#cancelAddStudentBtn");
+
+  // "+ 새 학생 등록" 버튼으로 추가한 이름은 이 브라우저의 localStorage에 저장됩니다.
+  function getExtraStudents(){
+    try {
+      const raw = localStorage.getItem(LS_EXTRA_STUDENTS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function saveExtraStudents(list){
+    localStorage.setItem(LS_EXTRA_STUDENTS_KEY, JSON.stringify(list));
+  }
+  function getAllStudents(){
+    const extra = getExtraStudents();
+    // 기본 명단(STUDENTS)에 이미 있는 이름은 중복으로 추가하지 않음
+    return STUDENTS.concat(extra.filter((n) => !STUDENTS.includes(n)));
+  }
+
+  document.title = SITE_TITLE;
+  siteTitleHeader.textContent = SITE_TITLE;
+
+  let activeSubjectKey = SUBJECTS[0] ? SUBJECTS[0].key : null;
+
+  function renderNameGrid(){
+    nameGrid.innerHTML = "";
+    const extra = getExtraStudents();
+    getAllStudents().forEach((name) => {
+      const btn = document.createElement("button");
+      btn.className = "name-btn" + (extra.includes(name) ? " is-extra" : "");
+      btn.type = "button";
+      btn.textContent = name;
+      btn.addEventListener("click", () => login(name));
+      nameGrid.appendChild(btn);
+    });
+  }
+
+  function addStudent(){
+    const name = newStudentInput.value.trim();
+    if (!name) return;
+    if (getAllStudents().includes(name)) {
+      alert("이미 등록된 이름이에요.");
+      return;
+    }
+    const extra = getExtraStudents();
+    extra.push(name);
+    saveExtraStudents(extra);
+    newStudentInput.value = "";
+    addStudentForm.style.display = "none";
+    renderNameGrid();
+  }
+
+  showAddStudentBtn.addEventListener("click", () => {
+    addStudentForm.style.display = addStudentForm.style.display === "none" ? "flex" : "none";
+    if (addStudentForm.style.display === "flex") newStudentInput.focus();
+  });
+  cancelAddStudentBtn.addEventListener("click", () => {
+    addStudentForm.style.display = "none";
+    newStudentInput.value = "";
+  });
+  confirmAddStudentBtn.addEventListener("click", addStudent);
+  newStudentInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addStudent();
+  });
+
+  function login(name){
+    localStorage.setItem(LS_KEY, name);
+    showMain(name);
+  }
+
+  function logout(){
+    localStorage.removeItem(LS_KEY);
+    loginScreen.style.display = "";
+    mainScreen.style.display = "none";
+    whoBox.style.display = "none";
+  }
+
+  function showMain(name){
+    loginScreen.style.display = "none";
+    mainScreen.style.display = "block";
+    whoBox.style.display = "flex";
+    whoText.textContent = name + "님";
+    renderTabs();
+    renderSubject(activeSubjectKey);
+  }
+
+  function countSubject(subject){
+    let total = 0, available = 0;
+    subject.chapters.forEach((ch) => {
+      ch.lessons.forEach((ls) => {
+        total++;
+        if (ls.url && ls.url.trim() !== "") available++;
+      });
+    });
+    return { total, available };
+  }
+
+  function renderTabs(){
+    tabBox.innerHTML = "";
+    SUBJECTS.forEach((subject) => {
+      const { total, available } = countSubject(subject);
+      const btn = document.createElement("button");
+      btn.className = "tab-btn" + (subject.key === activeSubjectKey ? " active" : "");
+      btn.type = "button";
+      btn.innerHTML = subject.icon + " " + subject.label +
+        "<small>" + total + "강 · 시청가능 " + available + "강</small>";
+      btn.addEventListener("click", () => {
+        activeSubjectKey = subject.key;
+        renderTabs();
+        renderSubject(activeSubjectKey);
+      });
+      tabBox.appendChild(btn);
+    });
+  }
+
+  function renderSubject(key){
+    const subject = SUBJECTS.find((s) => s.key === key);
+    if (!subject) {
+      summaryBox.textContent = "등록된 강의가 없어요.";
+      chapterBox.innerHTML = "";
+      return;
+    }
+    const { total, available } = countSubject(subject);
+    summaryBox.innerHTML =
+      "전체 <b>" + total + "강</b> <span class='dot'>·</span> 시청 가능 <b>" + available + "강</b>";
+
+    chapterBox.innerHTML = "";
+    subject.chapters.forEach((ch) => {
+      const det = document.createElement("details");
+      det.className = "chapter";
+
+      const summary = document.createElement("summary");
+      summary.innerHTML = "<span>" + escapeHtml(ch.title) + "</span>" +
+        "<span class='cnt'>" + ch.lessons.length + "강</span>";
+      det.appendChild(summary);
+
+      const list = document.createElement("div");
+      list.className = "lesson-list";
+
+      ch.lessons.forEach((ls) => {
+        const row = document.createElement("div");
+        row.className = "lesson";
+
+        const titleWrap = document.createElement("div");
+        titleWrap.className = "lesson-title";
+        let html = escapeHtml(ls.title);
+        if (ls.page && ls.page.trim() !== "") {
+          html += " <span class='page'>" + escapeHtml(ls.page) + "</span>";
+        }
+        titleWrap.innerHTML = html;
+        row.appendChild(titleWrap);
+
+        if (ls.url && ls.url.trim() !== "") {
+          const a = document.createElement("a");
+          a.className = "watch-btn";
+          a.href = ls.url;
+          a.target = "_blank";
+          a.rel = "noopener noreferrer";
+          a.textContent = "▶ 영상 보기";
+          row.appendChild(a);
+        } else {
+          const span = document.createElement("span");
+          span.className = "soon";
+          span.textContent = "준비 중";
+          row.appendChild(span);
+        }
+
+        list.appendChild(row);
+      });
+
+      det.appendChild(list);
+      chapterBox.appendChild(det);
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  $("#switchUserBtn").addEventListener("click", logout);
+
+  // 시작: 이전에 로그인했던 이름이 있으면 자동으로 이어서 보여주기
+  renderNameGrid();
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved && getAllStudents().includes(saved)) {
+    showMain(saved);
+  }
+</script>
+</body>
+</html>
