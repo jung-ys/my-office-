@@ -7,14 +7,10 @@ generator client {
 }
 
 // 배포(Vercel) 환경에서는 SQLite 파일이 유지되지 않으므로 Postgres를 사용합니다.
-// - url: 앱이 평소에 쓰는 연결(커넥션 풀 경유)
-// - directUrl: 마이그레이션 실행 시 쓰는 직접 연결 (풀을 거치지 않음)
-// 로컬 개발도 같은 Postgres(예: Vercel Postgres, Neon, Supabase 무료 티어)를 하나 만들어
-// DATABASE_URL / DIRECT_URL에 넣어 쓰면 배포 환경과 동일하게 동작합니다.
+// DATABASE_URL 하나만 있으면 됩니다 (별도의 DIRECT_URL 설정 불필요).
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // 학생: 이름 선택 + 4자리 PIN으로 로그인

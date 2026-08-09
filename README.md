@@ -34,7 +34,7 @@
 
 ```bash
 npm install
-cp .env.example .env      # DATABASE_URL / DIRECT_URL / ADMIN_PASSWORD 채우기
+cp .env.example .env      # DATABASE_URL / ADMIN_PASSWORD 채우기
 npx prisma migrate dev --name init   # 테이블 생성 (최초 1회, DB 스키마가 없을 때)
 npm run db:seed           # 실제 커리큘럼(777초등문법, 1316중등문법1, 리더스뱅크2·3) + 학생 11명 시드
 npm run dev
@@ -68,17 +68,13 @@ npm run db:reset
    (또는 main에 병합했다면 main) 선택
 2. **Postgres 만들기**: 프로젝트 생성 화면(또는 생성 후 **Storage** 탭)에서
    **Create Database → Postgres** 선택. 만들면 `DATABASE_URL`류 환경변수가 자동으로 추가돼요.
-3. **환경변수 확인/추가**: 프로젝트 **Settings → Environment Variables**에서
-   - 자동으로 생긴 Postgres 연결값(이름이 `POSTGRES_PRISMA_URL`이나 `DATABASE_URL` 등일 수 있어요)을
-     복사해서 **`DATABASE_URL`** 이라는 이름으로 다시 추가 (풀링 연결 값)
-   - 직접 연결용 값(`POSTGRES_URL_NON_POOLING` / `DATABASE_URL_UNPOOLED` 등)을
-     **`DIRECT_URL`** 이라는 이름으로 다시 추가
-   - **`ADMIN_PASSWORD`** 도 원하는 값으로 추가
+3. **환경변수 확인**: `DATABASE_URL`은 Neon 연동 시 자동으로 추가됩니다 (별도로 손댈 필요 없음).
+   **Settings → Environment Variables**에서 **`ADMIN_PASSWORD`** 만 원하는 값으로 추가해주세요.
 4. **Deploy** 클릭. 빌드 중 `prisma migrate deploy`가 자동 실행되어 테이블이 만들어집니다.
 5. **초기 데이터 넣기 (최초 1회)**: 배포된 DB는 비어있으니, 내 컴퓨터에서 아래처럼
    방금 만든 Postgres에 시드를 한 번 넣어주세요.
    ```bash
-   DATABASE_URL="<Vercel에서 복사한 연결값>" npx tsx prisma/seed.ts
+   DATABASE_URL="<Vercel에서 복사한 DATABASE_URL 값>" npx tsx prisma/seed.ts
    ```
 6. 완료되면 `https://프로젝트이름.vercel.app` 링크가 생깁니다. 이 링크를 학생들에게 공유하면 됩니다.
 
