@@ -4,11 +4,23 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { checkAdminPassword, clearAdminSession, isAdmin, setAdminSession } from "@/lib/auth";
+import { runSeed } from "@/lib/seedData";
 
 async function requireAdmin() {
   if (!(await isAdmin())) {
     redirect("/admin");
   }
+}
+
+/**
+ * 배포된 사이트의 DB가 비어있을 때(최초 1회) 실제 커리큘럼 + 학생 11명을 넣습니다.
+ * ⚠️ 기존 과목/시리즈/챕터/영상/학생/진도 데이터를 전부 지우고 다시 만듭니다.
+ */
+export async function runSeedAction() {
+  await requireAdmin();
+  await runSeed(prisma);
+  revalidatePath("/admin");
+  redirect("/admin?seeded=1");
 }
 
 export async function adminLogin(formData: FormData) {

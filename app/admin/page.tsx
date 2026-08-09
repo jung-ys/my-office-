@@ -2,14 +2,15 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { adminLogin, adminLogout, createStudent, deleteStudent } from "./actions";
+import SeedButton from "./SeedButton";
 
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; seeded?: string }>;
 }) {
   const admin = await isAdmin();
-  const { error } = await searchParams;
+  const { error, seeded } = await searchParams;
 
   if (!admin) {
     return (
@@ -56,6 +57,22 @@ export default async function AdminPage({
           </form>
         </div>
       </div>
+
+      {seeded && (
+        <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          ✅ 초기 데이터를 넣었어요! 아래에서 과목/시리즈/학생을 확인해보세요.
+        </p>
+      )}
+
+      {/* 최초 설정: 데이터가 비어있을 때 한 번에 채우기 */}
+      <section className="flex flex-col items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <p className="text-sm font-semibold text-amber-800">🚀 처음 배포했다면?</p>
+        <p className="text-xs text-amber-700">
+          아래 버튼을 누르면 실제 커리큘럼(문법/독해)과 학생 11명이 한 번에 채워집니다.
+          이미 데이터가 있는 상태에서 누르면 전부 지우고 다시 채우니, 진도가 쌓인 뒤에는 누르지 마세요.
+        </p>
+        <SeedButton />
+      </section>
 
       {/* 과목별 시리즈 관리 */}
       <section className="flex flex-col gap-4">
