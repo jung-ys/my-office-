@@ -22,25 +22,24 @@ export default function VideoPlayer({
   const formRef = useRef<HTMLFormElement>(null);
   const autoSubmittedRef = useRef(false);
   const [elapsed, setElapsed] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // 이미 시청 완료된 영상은 타이머가 필요 없음(복습은 바로 가능)
   useEffect(() => {
     if (watched) return;
     const timer = setInterval(() => {
-      // 다른 탭/창으로 이동해 있거나(document.hidden) 직접 일시정지했으면 시간이 세어지지 않음
-      if (!document.hidden && !paused) {
+      // 다른 탭/창으로 이동해 있으면(document.hidden) 시간이 세어지지 않음 → 스킵 방지
+      if (!document.hidden) {
         setElapsed((s) => s + 1);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [watched, paused]);
+  }, [watched]);
 
-  // 영상 길이의 90%만큼(최소 30초) 화면에 머물러야 완료 처리돼요.
-  // 길이 정보가 없는 영상은 기본 90초로 대체해요.
-  const requiredSeconds = durationMinutes
-    ? Math.max(30, Math.round(durationMinutes * 60 * 0.9))
-    : 90;
+  // 영상 길이(분)만큼 화면에 머물러야(=끝까지 봐야) 완료 처리돼요.
+  // 길이 정보가 없는 영상은 기본 90초로 대체하니, 정확한 판정을 위해 관리자 페이지에서
+  // 영상 길이(분)를 꼭 입력해주세요.
+  const requiredSeconds = durationMinutes ? Math.round(durationMinutes * 60) : 90;
   const remaining = Math.max(0, requiredSeconds - elapsed);
   const canComplete = elapsed >= requiredSeconds;
 
@@ -51,7 +50,31 @@ export default function VideoPlayer({
     formRef.current?.requestSubmit();
   }, [watched, canComplete]);
 
-  function handleFullscreen() {
+  // 전체화면 상태를 추적해서 버튼이 "들어가기/나가기"를 정확히 보여줘요.
+  // (esc 키가 없는 태블릿/폰에서도 버튼만으로 전체화면을 빠져나갈 수 있도록)
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === iframeRef.current);
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // 다른 화면으로 이동할 때 전체화면이 남아있으면 다음 화면과 겹쳐 보일 수 있어서,
+  // 이 페이지를 떠날 때 전체화면을 확실히 해제해요.
+  useEffect(() => {
+    return () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []);
+
+  function handleFullscreenToggle() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+      return;
+    }
     const el = iframeRef.current;
     if (!el) return;
     if (el.requestFullscreen) {
@@ -76,10 +99,10 @@ export default function VideoPlayer({
         </div>
         <button
           type="button"
-          onClick={handleFullscreen}
+          onClick={handleFullscreenToggle}
           className="absolute bottom-3 right-3 rounded-lg bg-black/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur hover:bg-black/80"
         >
-          ⛶ 전체화면
+          {isFullscreen ? "⛶ 전체화면 나가기" : "⛶ 전체화면"}
         </button>
       </div>
 
@@ -114,31 +137,16 @@ export default function VideoPlayer({
             className="flex flex-col items-center gap-2"
           >
             <input type="hidden" name="watchSeconds" value={elapsed} />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPaused((p) => !p)}
-                className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
-              >
-                {paused ? "▶ 계속하기" : "⏸ 일시정지"}
-              </button>
-              <button
-                disabled={!canComplete}
-                className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-              >
-                {canComplete ? "시청 완료로 표시하기" : `시청 완료 (${remaining}초 후 자동)`}
-              </button>
-            </div>
-            {paused ? (
-              <p className="max-w-xs text-center text-xs font-medium text-amber-600">
-                ⏸ 일시정지됐어요. 다시 보기 시작하면 계속하기를 눌러주세요.
+            <button
+              disabled={!canComplete}
+              className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            >
+              {canComplete ? "시청 완료로 표시하기" : `시청 완료 (${remaining}초 후 자동)`}
+            </button>
+            {!canComplete && (
+              <p className="max-w-xs text-center text-xs text-zinc-400">
+                영상을 끝까지 보면 자동으로 완료 처리돼요. 다른 탭으로 이동하면 시간이 멈춰요.
               </p>
-            ) : (
-              !canComplete && (
-                <p className="max-w-xs text-center text-xs text-zinc-400">
-                  영상을 잠시 더 보면 자동으로 완료 처리돼요. 수업이 중단되면 일시정지를 눌러주세요.
-                </p>
-              )
             )}
           </form>
         )}

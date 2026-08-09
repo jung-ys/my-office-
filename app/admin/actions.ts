@@ -212,7 +212,7 @@ export async function createVideo(
   const order = Number(formData.get("order") ?? 0) || 0;
   const durationRaw = String(formData.get("duration") ?? "").trim();
   const duration = durationRaw ? Number(durationRaw) : null;
-  if (!title) return;
+  if (!title || !duration || duration <= 0) return;
 
   await prisma.video.create({
     data: { chapterId, title, videoUrl, page: page || null, order, duration },
@@ -234,6 +234,7 @@ export async function updateVideo(
   const order = Number(formData.get("order") ?? 0) || 0;
   const durationRaw = String(formData.get("duration") ?? "").trim();
   const duration = durationRaw ? Number(durationRaw) : null;
+  if (!title || !duration || duration <= 0) return;
 
   await prisma.video.update({
     where: { id: videoId },

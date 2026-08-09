@@ -95,12 +95,14 @@ export default async function AdminChapterPage({
                   />
                 </label>
                 <label className="flex-1 text-xs text-zinc-500">
-                  길이(분)
+                  길이(분) *
                   <input
                     name="duration"
                     type="number"
+                    min="1"
                     defaultValue={v.duration ?? ""}
                     className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                    required
                   />
                 </label>
               </div>
@@ -128,6 +130,9 @@ export default async function AdminChapterPage({
         className="flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-4"
       >
         <p className="text-sm font-semibold text-zinc-700">➕ 새 영상 추가</p>
+        <p className="text-xs text-zinc-400">
+          길이(분)은 학생이 영상을 끝까지 봤는지 확인하는 기준으로 쓰이니 정확히 입력해주세요.
+        </p>
         <input
           name="title"
           placeholder="영상 제목 (예: UNIT1. be동사가 있는 문장)"
@@ -155,8 +160,10 @@ export default async function AdminChapterPage({
           <input
             name="duration"
             type="number"
-            placeholder="길이(분)"
+            min="1"
+            placeholder="길이(분) *"
             className="w-24 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            required
           />
           <button className="ml-auto rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
             추가
