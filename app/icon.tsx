@@ -3,6 +3,9 @@ import { ImageResponse } from "next/og";
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
 
+const s = size.width;
+const triSize = Math.round(s * 0.5);
+
 export default function Icon() {
   return new ImageResponse(
     (
@@ -14,12 +17,11 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#4f46e5",
-          color: "white",
-          fontSize: 20,
-          fontWeight: 700,
         }}
       >
-        S
+        <svg width={triSize} height={triSize} viewBox="0 0 100 100">
+          <polygon points="22,8 22,92 90,50" fill="white" />
+        </svg>
       </div>
     ),
     { ...size }
