@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "문법영상 학습",
   description: "학원 문법 영상 진도 학습 사이트",
   appleWebApp: {
-    title: "셀레나 학습",
+    title: "영상학습",
     statusBarStyle: "default",
   },
 };

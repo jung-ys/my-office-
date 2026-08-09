@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "삼성영어 셀레나 삼양캠퍼스 학습",
-    short_name: "셀레나 학습",
+    name: "삼성영어 셀레나 삼양캠퍼스 영상학습",
+    short_name: "영상학습",
     description: "삼성영어 셀레나 삼양캠퍼스 문법/독해 영상 학습",
     start_url: "/",
     display: "standalone",
