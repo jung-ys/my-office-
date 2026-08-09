@@ -36,10 +36,10 @@ export default function VideoPlayer({
     return () => clearInterval(timer);
   }, [watched, paused]);
 
-  // 영상 길이의 80%만큼(최소 30초) 화면에 머물러야 완료 처리돼요.
+  // 영상 길이의 90%만큼(최소 30초) 화면에 머물러야 완료 처리돼요.
   // 길이 정보가 없는 영상은 기본 90초로 대체해요.
   const requiredSeconds = durationMinutes
-    ? Math.max(30, Math.round(durationMinutes * 60 * 0.8))
+    ? Math.max(30, Math.round(durationMinutes * 60 * 0.9))
     : 90;
   const remaining = Math.max(0, requiredSeconds - elapsed);
   const canComplete = elapsed >= requiredSeconds;
