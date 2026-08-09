@@ -26,12 +26,16 @@
 > ⚠️ 마이박스 공유 페이지가 iframe 삽입을 막아둔 경우 영상이 바로 재생되지 않을 수 있어,
 > 영상 페이지에는 항상 **"새 탭에서 영상 보기"** 링크가 함께 표시됩니다.
 
-## 시작하기
+## 시작하기 (로컬 개발)
+
+이 프로젝트는 **Postgres**를 사용합니다 (아래 "배포하기" 참고). 로컬에서 먼저 써보려면
+무료 Postgres를 하나 만들어서(Vercel Postgres, [Neon](https://neon.tech), [Supabase](https://supabase.com) 등
+아무 곳이나 무료 티어면 충분해요) 연결 문자열을 `.env`에 넣어주세요.
 
 ```bash
 npm install
-cp .env.example .env      # ADMIN_PASSWORD를 원하는 비밀번호로 변경하세요
-npx prisma migrate dev    # DB 생성
+cp .env.example .env      # DATABASE_URL / DIRECT_URL / ADMIN_PASSWORD 채우기
+npx prisma migrate dev --name init   # 테이블 생성 (최초 1회, DB 스키마가 없을 때)
 npm run db:seed           # 실제 커리큘럼(777초등문법, 1316중등문법1, 리더스뱅크2·3) + 학생 11명 시드
 npm run dev
 ```
@@ -54,17 +58,37 @@ npm run db:reset
 ## 기술 스택
 
 - Next.js (App Router) + TypeScript + Tailwind CSS
-- Prisma + SQLite (파일 기반 DB, `prisma/dev.db`)
+- Prisma + Postgres (Vercel Postgres / Neon / Supabase 등 아무 호스팅 Postgres나 가능)
 - 인증: 쿠키 기반 세션 (학생: 이름 + PIN, 관리자: 비밀번호)
 
-## 배포 시 참고사항
+## 배포하기 (Vercel)
 
-- 기본값은 SQLite 파일(`prisma/dev.db`)을 사용합니다. **로컬 PC나 학원 내부 서버에서
-  계속 실행하는 방식**이라면 이대로 사용해도 됩니다.
-- Vercel 같은 서버리스 환경에 배포하면 파일 시스템이 요청마다 초기화되어 SQLite 데이터가
-  유지되지 않습니다. 인터넷 어디서나 접속 가능한 형태로 배포하려면 `DATABASE_URL`을
-  Postgres, Turso(LibSQL) 등 호스팅 DB로 교체해야 합니다.
+1. **GitHub 저장소 연결**: [vercel.com](https://vercel.com) 로그인 → **Add New → Project** →
+   이 저장소(`jung-ys/my-office-`) 선택 → 브랜치는 `claude/new-academy-project-k1jdgr`
+   (또는 main에 병합했다면 main) 선택
+2. **Postgres 만들기**: 프로젝트 생성 화면(또는 생성 후 **Storage** 탭)에서
+   **Create Database → Postgres** 선택. 만들면 `DATABASE_URL`류 환경변수가 자동으로 추가돼요.
+3. **환경변수 확인/추가**: 프로젝트 **Settings → Environment Variables**에서
+   - 자동으로 생긴 Postgres 연결값(이름이 `POSTGRES_PRISMA_URL`이나 `DATABASE_URL` 등일 수 있어요)을
+     복사해서 **`DATABASE_URL`** 이라는 이름으로 다시 추가 (풀링 연결 값)
+   - 직접 연결용 값(`POSTGRES_URL_NON_POOLING` / `DATABASE_URL_UNPOOLED` 등)을
+     **`DIRECT_URL`** 이라는 이름으로 다시 추가
+   - **`ADMIN_PASSWORD`** 도 원하는 값으로 추가
+4. **Deploy** 클릭. 빌드 중 `prisma migrate deploy`가 자동 실행되어 테이블이 만들어집니다.
+5. **초기 데이터 넣기 (최초 1회)**: 배포된 DB는 비어있으니, 내 컴퓨터에서 아래처럼
+   방금 만든 Postgres에 시드를 한 번 넣어주세요.
+   ```bash
+   DATABASE_URL="<Vercel에서 복사한 연결값>" npx tsx prisma/seed.ts
+   ```
+6. 완료되면 `https://프로젝트이름.vercel.app` 링크가 생깁니다. 이 링크를 학생들에게 공유하면 됩니다.
+
+> ⚠️ 로컬에서 `npm run dev`로 스키마를 처음 만들 때는 `npx prisma migrate dev --name init`으로
+> 마이그레이션 파일을 만들고 커밋해두어야, Vercel 배포 시 `prisma migrate deploy`가 그 파일을
+> 그대로 실행해서 운영 DB에 테이블을 만듭니다.
+
 - `ADMIN_PASSWORD`는 반드시 기본값에서 변경해서 사용하세요.
+- 학원 내부 PC에서 서버를 계속 켜두는 방식으로만 쓰고 싶다면, 로컬 Postgres(Docker 등)를
+  하나 띄워서 `DATABASE_URL`을 거기로 향하게 하고 `npm run start`로 계속 실행하면 됩니다.
 
 ## 데이터 구조
 
