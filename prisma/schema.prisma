@@ -1,0 +1,60 @@
+// 학원 문법영상 학습 사이트 - 데이터 모델
+// 학생(Student), 교재(Textbook), 영상(Video), 진도(Progress)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 학생: 이름을 목록에서 선택해 로그인. pin은 선택사항(비워두면 이름만으로 입장)
+model Student {
+  id                String     @id @default(cuid())
+  name              String
+  pin               String? // 4자리 숫자 등, 없으면 이름만으로 로그인
+  currentTextbookId String? // 마지막으로 선택한 교재 (오늘의 학습 기준)
+  currentTextbook   Textbook?  @relation(fields: [currentTextbookId], references: [id], onDelete: SetNull)
+  createdAt         DateTime   @default(now())
+  progress          Progress[]
+}
+
+// 교재: 아이가 선택하면 그 안의 영상들이 순서대로 연결됨
+model Textbook {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int      @default(0) // 목록 표시 순서
+  createdAt DateTime @default(now())
+  videos    Video[]
+  students  Student[]
+}
+
+// 영상: 특정 교재에 속하며 교재 내 순서(order)를 가짐
+model Video {
+  id         String     @id @default(cuid())
+  textbookId String
+  textbook   Textbook   @relation(fields: [textbookId], references: [id], onDelete: Cascade)
+  title      String
+  order      Int        @default(0) // 교재 내 순서 (자동 진도 판단 기준)
+  videoUrl   String // 네이버 마이박스 공유 링크
+  duration   Int? // 분 단위, 선택
+  createdAt  DateTime   @default(now())
+  progress   Progress[]
+}
+
+// 진도: 학생별 영상 시청 여부. 복습해도 최초 시청일은 유지하고 마지막 시청일만 갱신
+model Progress {
+  id           String    @id @default(cuid())
+  studentId    String
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  videoId      String
+  video        Video     @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  watched      Boolean   @default(false)
+  firstWatchedAt DateTime?
+  lastWatchedAt  DateTime?
+  reviewCount  Int       @default(0) // 복습(재시청) 횟수
+
+  @@unique([studentId, videoId])
+}
