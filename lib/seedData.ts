@@ -400,20 +400,20 @@ export async function runSeed(prisma: PrismaClient) {
         key: subject.key,
         label: subject.label,
         icon: subject.icon,
-        order: subjectOrder,
+        order: subjectOrder + 1,
         series: {
           create: subject.series.map((series, seriesOrder) => ({
             title: series.title,
-            order: seriesOrder,
+            order: seriesOrder + 1,
             chapters: {
               create: series.chapters.map((chapter, chapterOrder) => ({
                 title: chapter.title,
-                order: chapterOrder,
+                order: chapterOrder + 1,
                 videos: {
                   create: chapter.lessons.map((lesson, videoOrder) => ({
                     title: lesson.title,
                     page: lesson.page ?? null,
-                    order: videoOrder,
+                    order: videoOrder + 1,
                     videoUrl: lesson.url ?? "",
                     duration: lesson.duration ?? null,
                   })),

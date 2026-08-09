@@ -77,7 +77,7 @@ export default async function AdminSeriesPage({
           name="order"
           type="number"
           placeholder="순서"
-          defaultValue={series.chapters.length}
+          defaultValue={series.chapters.length + 1}
           className="w-20 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
         />
         <button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
