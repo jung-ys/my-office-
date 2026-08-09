@@ -153,6 +153,26 @@ export async function setStartingPoint(studentId: string, formData: FormData) {
   redirect(`/admin?startset=${encodeURIComponent(student.name)}`);
 }
 
+/**
+ * 학생 정보(이름/아이디/학년/학교)는 그대로 두고, 배정 교재와 학습 진도(시청 완료 기록,
+ * 시청 시간, 시작 지점으로 인한 자동 완료 처리 등)만 전부 지워서 처음 상태로 되돌립니다.
+ * 테스트로 이것저것 눌러본 뒤 되돌리거나, 학생이 처음부터 다시 시작해야 할 때 사용해요.
+ */
+export async function resetStudentData(studentId: string) {
+  await requireAdmin();
+  const student = await prisma.student.findUnique({ where: { id: studentId }, select: { name: true } });
+  if (!student) return;
+
+  await prisma.$transaction([
+    prisma.studentChapter.deleteMany({ where: { studentId } }),
+    prisma.progress.deleteMany({ where: { studentId } }),
+  ]);
+
+  revalidatePath("/admin");
+  revalidatePath("/student");
+  redirect(`/admin?reset=${encodeURIComponent(student.name)}`);
+}
+
 export async function deleteStudent(studentId: string) {
   await requireAdmin();
   const student = await prisma.student.delete({ where: { id: studentId } });

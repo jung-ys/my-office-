@@ -13,6 +13,7 @@ import {
 } from "./actions";
 import SeedButton from "./SeedButton";
 import SeriesAssignmentGroup from "./SeriesAssignmentGroup";
+import ResetStudentButton from "./ResetStudentButton";
 
 export default async function AdminPage({
   searchParams,
@@ -24,10 +25,11 @@ export default async function AdminPage({
     updated?: string;
     deleted?: string;
     startset?: string;
+    reset?: string;
   }>;
 }) {
   const admin = await isAdmin();
-  const { error, seeded, added, updated, deleted, startset } = await searchParams;
+  const { error, seeded, added, updated, deleted, startset, reset } = await searchParams;
 
   if (!admin) {
     return (
@@ -134,6 +136,11 @@ export default async function AdminPage({
       {startset && (
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           ✅ {startset}님의 시작 지점을 설정했어요. 그 이전 배정된 영상은 모두 시청 완료로 표시됐어요.
+        </p>
+      )}
+      {reset && (
+        <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          🔄 {reset}님의 배정 교재와 학습 진도를 초기화했어요.
         </p>
       )}
 
@@ -339,16 +346,19 @@ export default async function AdminPage({
                   )}
                 </div>
 
-                <div className="mt-1 flex justify-end gap-3">
-                  <button
-                    formAction={deleteStudent.bind(null, s.id)}
-                    className="text-sm text-red-500 hover:underline"
-                  >
-                    삭제
-                  </button>
-                  <button className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                    저장
-                  </button>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <ResetStudentButton studentId={s.id} studentName={s.name} />
+                  <div className="flex gap-3">
+                    <button
+                      formAction={deleteStudent.bind(null, s.id)}
+                      className="text-sm text-red-500 hover:underline"
+                    >
+                      삭제
+                    </button>
+                    <button className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                      저장
+                    </button>
+                  </div>
                 </div>
               </form>
             </details>
