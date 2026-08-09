@@ -62,6 +62,7 @@ export default async function VideoPlayerPage({
           durationMinutes={video.duration}
           watched={watched}
           reviewCount={progress?.reviewCount ?? 0}
+          backHref={chapterHref}
         />
       ) : (
         <div className="flex aspect-video w-full items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50">

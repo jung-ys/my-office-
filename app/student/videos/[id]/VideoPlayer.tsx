@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { markReview, markWatched } from "../../actions";
 
 export default function VideoPlayer({
@@ -10,6 +11,7 @@ export default function VideoPlayer({
   durationMinutes,
   watched,
   reviewCount,
+  backHref,
 }: {
   videoId: string;
   videoUrl: string;
@@ -17,7 +19,9 @@ export default function VideoPlayer({
   durationMinutes: number | null;
   watched: boolean;
   reviewCount: number;
+  backHref: string;
 }) {
+  const router = useRouter();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const reviewFormRef = useRef<HTMLFormElement>(null);
@@ -117,6 +121,19 @@ export default function VideoPlayer({
       }
     };
   }, []);
+
+  // 마이박스처럼 자체 화면 전환이 있는 임베드는, 뒤로가기를 눌렀을 때 우리 화면이 아니라
+  // iframe 내부의 이전 상태(예: 마이박스 파일 목록 화면)가 겹쳐서 잠깐 보일 수 있어요.
+  // 히스토리에 안전장치를 하나 쌓아두고, 뒤로가기가 감지되면 무조건 목록 화면으로
+  // 이동시켜서 화면이 지저분하게 겹쳐 보이는 걸 막아요.
+  useEffect(() => {
+    window.history.pushState({ videoGuard: true }, "", window.location.href);
+    function handlePopState() {
+      router.replace(backHref);
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [router, backHref]);
 
   function handleFullscreenToggle() {
     if (document.fullscreenElement) {
