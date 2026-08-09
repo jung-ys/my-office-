@@ -33,6 +33,9 @@ export default function VideoPlayer({
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewElapsed, setReviewElapsed] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // 복습을 시작할 때마다 값을 바꿔서 iframe을 통째로 다시 불러오게 해요.
+  // (마이박스 플레이어가 이전에 보던 위치에 멈춰있지 않고 처음부터 다시 준비되도록)
+  const [reviewKey, setReviewKey] = useState(0);
 
   // 영상 길이(분)만큼 화면에 머물러야(=끝까지 봐야) 완료/복습 기록이 남아요.
   // 길이 정보가 없는 영상은 기본 90초로 대체하니, 정확한 판정을 위해 관리자 페이지에서
@@ -95,6 +98,7 @@ export default function VideoPlayer({
     setIsReviewing(true);
     setReviewElapsed(0);
     reviewAutoSubmittedRef.current = false;
+    setReviewKey((k) => k + 1);
   }
 
   function cancelReview() {
@@ -154,6 +158,7 @@ export default function VideoPlayer({
       <div className="relative overflow-hidden rounded-xl border border-zinc-200 bg-black">
         <div className="aspect-video w-full">
           <iframe
+            key={reviewKey}
             ref={iframeRef}
             src={videoUrl}
             className="h-full w-full"
@@ -203,6 +208,10 @@ export default function VideoPlayer({
                     ? "복습 기록하기"
                     : `복습 중... (${remainingReview}초 후 자동 기록)`}
                 </button>
+                <p className="max-w-xs text-center text-xs font-medium text-amber-600">
+                  ⚠️ 위 영상의 재생 버튼을 직접 눌러서 처음부터 다시 봐주세요. (자동 재생은 지원되지
+                  않아요)
+                </p>
                 <button
                   type="button"
                   onClick={cancelReview}
@@ -236,7 +245,8 @@ export default function VideoPlayer({
             </button>
             {!canComplete && (
               <p className="max-w-xs text-center text-xs text-zinc-400">
-                영상을 끝까지 보면 자동으로 완료 처리돼요. 다른 탭으로 이동하면 시간이 멈춰요.
+                위 영상의 재생 버튼을 눌러 끝까지 보면 자동으로 완료 처리돼요. 다른 탭으로 이동하면
+                시간이 멈춰요.
               </p>
             )}
           </form>
