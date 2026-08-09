@@ -5,55 +5,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { checkAdminPassword, clearAdminSession, isAdmin, setAdminSession } from "@/lib/auth";
 import { runSeed } from "@/lib/seedData";
-import { parseSeriesVolume } from "@/lib/seriesVolume";
 
 async function requireAdmin() {
   if (!(await isAdmin())) {
     redirect("/admin");
   }
-}
-
-/**
- * 체크된 챕터 목록에 "N권"처럼 권 번호가 붙은 시리즈가 있으면, 같은 교재(같은 과목 + 같은 책 이름)의
- * 더 낮은 권까지 자동으로 함께 배정되도록 챕터 id를 확장합니다.
- * 예) "777 초등영문법 2권"을 체크하면 → "0권", "1권"의 챕터도 자동으로 포함됩니다.
- */
-async function expandWithEarlierVolumes(chapterIds: string[]): Promise<string[]> {
-  if (chapterIds.length === 0) return chapterIds;
-
-  const selected = await prisma.chapter.findMany({
-    where: { id: { in: chapterIds } },
-    select: { id: true, series: { select: { id: true, title: true, subjectId: true } } },
-  });
-
-  // "과목 id | 교재 이름" 별로 선택된 것 중 가장 높은 권수를 계산
-  const maxVolByFamily = new Map<string, number>();
-  const subjectIds = new Set<string>();
-  for (const ch of selected) {
-    const parsed = parseSeriesVolume(ch.series.title);
-    if (!parsed) continue;
-    subjectIds.add(ch.series.subjectId);
-    const key = `${ch.series.subjectId}|${parsed.base}`;
-    const cur = maxVolByFamily.get(key);
-    if (cur === undefined || parsed.vol > cur) maxVolByFamily.set(key, parsed.vol);
-  }
-  if (maxVolByFamily.size === 0) return chapterIds;
-
-  const allSeries = await prisma.series.findMany({
-    where: { subjectId: { in: [...subjectIds] } },
-    select: { id: true, title: true, subjectId: true, chapters: { select: { id: true } } },
-  });
-
-  const result = new Set(chapterIds);
-  for (const se of allSeries) {
-    const parsed = parseSeriesVolume(se.title);
-    if (!parsed) continue;
-    const maxVol = maxVolByFamily.get(`${se.subjectId}|${parsed.base}`);
-    if (maxVol === undefined || parsed.vol > maxVol) continue;
-    for (const c of se.chapters) result.add(c.id);
-  }
-
-  return [...result];
 }
 
 /**
@@ -106,10 +62,8 @@ export async function updateStudent(studentId: string, formData: FormData) {
   const school = String(formData.get("school") ?? "").trim();
   if (!name || !loginId) return;
 
-  // 체크된 챕터(권/유닛) = 이 학생에게 배정할 교재 범위
-  // + 더 높은 권을 체크하면 그보다 낮은 권도 자동으로 함께 배정됨 (예: 2권 체크 → 0,1권도 포함)
-  const checkedChapterIds = formData.getAll("chapterIds").map(String);
-  const chapterIds = await expandWithEarlierVolumes(checkedChapterIds);
+  // 체크된 챕터(권/유닛) = 이 학생에게 배정할 교재 범위 (체크한 것만 그대로 배정)
+  const chapterIds = formData.getAll("chapterIds").map(String);
 
   await prisma.$transaction([
     prisma.student.update({

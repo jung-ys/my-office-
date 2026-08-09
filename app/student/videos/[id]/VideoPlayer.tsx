@@ -19,27 +19,37 @@ export default function VideoPlayer({
   reviewCount: number;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const autoSubmittedRef = useRef(false);
   const [elapsed, setElapsed] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   // 이미 시청 완료된 영상은 타이머가 필요 없음(복습은 바로 가능)
   useEffect(() => {
     if (watched) return;
     const timer = setInterval(() => {
-      // 다른 탭/창으로 이동해 있으면(document.hidden) 시간이 세어지지 않음 → 스킵 방지
-      if (!document.hidden) {
+      // 다른 탭/창으로 이동해 있거나(document.hidden) 직접 일시정지했으면 시간이 세어지지 않음
+      if (!document.hidden && !paused) {
         setElapsed((s) => s + 1);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [watched]);
+  }, [watched, paused]);
 
-  // 영상 길이의 80%만큼(최소 30초) 화면에 머물러야 완료 버튼이 눌려요.
+  // 영상 길이의 80%만큼(최소 30초) 화면에 머물러야 완료 처리돼요.
   // 길이 정보가 없는 영상은 기본 90초로 대체해요.
   const requiredSeconds = durationMinutes
     ? Math.max(30, Math.round(durationMinutes * 60 * 0.8))
     : 90;
   const remaining = Math.max(0, requiredSeconds - elapsed);
   const canComplete = elapsed >= requiredSeconds;
+
+  // 다 봤으면(시간 조건 충족) 학생이 따로 누르지 않아도 자동으로 완료 처리돼요.
+  useEffect(() => {
+    if (watched || !canComplete || autoSubmittedRef.current) return;
+    autoSubmittedRef.current = true;
+    formRef.current?.requestSubmit();
+  }, [watched, canComplete]);
 
   function handleFullscreen() {
     const el = iframeRef.current;
@@ -98,18 +108,37 @@ export default function VideoPlayer({
             </form>
           </div>
         ) : (
-          <form action={markWatched.bind(null, videoId)} className="flex flex-col items-center gap-2">
+          <form
+            ref={formRef}
+            action={markWatched.bind(null, videoId)}
+            className="flex flex-col items-center gap-2"
+          >
             <input type="hidden" name="watchSeconds" value={elapsed} />
-            <button
-              disabled={!canComplete}
-              className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {canComplete ? "시청 완료로 표시하기" : `시청 완료 (${remaining}초 후 가능)`}
-            </button>
-            {!canComplete && (
-              <p className="max-w-xs text-center text-xs text-zinc-400">
-                영상을 잠시 더 보면 완료 버튼이 눌려요. 다른 탭으로 이동하면 시간이 멈춰요.
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPaused((p) => !p)}
+                className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
+              >
+                {paused ? "▶ 계속하기" : "⏸ 일시정지"}
+              </button>
+              <button
+                disabled={!canComplete}
+                className="rounded-lg bg-indigo-600 px-6 py-2.5 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+              >
+                {canComplete ? "시청 완료로 표시하기" : `시청 완료 (${remaining}초 후 자동)`}
+              </button>
+            </div>
+            {paused ? (
+              <p className="max-w-xs text-center text-xs font-medium text-amber-600">
+                ⏸ 일시정지됐어요. 다시 보기 시작하면 계속하기를 눌러주세요.
               </p>
+            ) : (
+              !canComplete && (
+                <p className="max-w-xs text-center text-xs text-zinc-400">
+                  영상을 잠시 더 보면 자동으로 완료 처리돼요. 수업이 중단되면 일시정지를 눌러주세요.
+                </p>
+              )
             )}
           </form>
         )}
