@@ -100,6 +100,55 @@ export async function getSubjectProgressSummary(subjectId: string, studentId: st
 }
 
 /**
+ * 관리자 페이지에서 "학생별 현재 수준(진도)"을 한눈에 보기 위한 요약.
+ * 학생마다, 과목마다 "완료 강의 수 / 전체 강의 수"를 계산해서 반환합니다.
+ */
+export async function getAllStudentsProgressOverview() {
+  const subjects = await prisma.subject.findMany({
+    orderBy: { order: "asc" },
+    include: { series: { include: { chapters: { include: { _count: { select: { videos: true } } } } } } },
+  });
+
+  const subjectTotals = subjects.map((s) => ({
+    id: s.id,
+    key: s.key,
+    label: s.label,
+    icon: s.icon,
+    total: s.series.reduce(
+      (sum, se) => sum + se.chapters.reduce((s2, ch) => s2 + ch._count.videos, 0),
+      0
+    ),
+  }));
+
+  const students = await prisma.student.findMany({ orderBy: { name: "asc" } });
+
+  const watched = await prisma.progress.findMany({
+    where: { watched: true },
+    select: {
+      studentId: true,
+      video: { select: { chapter: { select: { series: { select: { subjectId: true } } } } } },
+    },
+  });
+
+  const countMap = new Map<string, number>();
+  for (const p of watched) {
+    const key = `${p.studentId}|${p.video.chapter.series.subjectId}`;
+    countMap.set(key, (countMap.get(key) ?? 0) + 1);
+  }
+
+  return students.map((student) => ({
+    student,
+    subjects: subjectTotals.map((s) => ({
+      key: s.key,
+      label: s.label,
+      icon: s.icon,
+      watched: countMap.get(`${student.id}|${s.id}`) ?? 0,
+      total: s.total,
+    })),
+  }));
+}
+
+/**
  * 학생이 이 과목에서 가장 최근에 시청한 영상을 기준으로,
  * 같은 시리즈 안에서 다음으로 이어볼 "오늘의 학습" 영상을 계산합니다.
  * 이 과목에서 시청 기록이 전혀 없으면 null을 반환합니다 (→ 시리즈 선택 안내).

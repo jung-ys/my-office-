@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
-import { adminLogin, adminLogout, createStudent, deleteStudent } from "./actions";
+import { getAllStudentsProgressOverview } from "@/lib/progress";
+import { GRADE_OPTIONS } from "@/lib/grades";
+import { adminLogin, adminLogout, createStudent, deleteStudent, updateStudent } from "./actions";
 import SeedButton from "./SeedButton";
 
 export default async function AdminPage({
@@ -36,12 +38,12 @@ export default async function AdminPage({
     );
   }
 
-  const [subjects, students] = await Promise.all([
+  const [subjects, studentOverview] = await Promise.all([
     prisma.subject.findMany({
       orderBy: { order: "asc" },
       include: { series: { include: { _count: { select: { chapters: true } } } } },
     }),
-    prisma.student.findMany({ orderBy: { name: "asc" } }),
+    getAllStudentsProgressOverview(),
   ]);
 
   return (
@@ -101,40 +103,150 @@ export default async function AdminPage({
 
       {/* 학생 관리 */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-bold text-zinc-800">🧒 학생 (아이디 + 이름)</h2>
+        <h2 className="font-bold text-zinc-800">🧒 학생 관리 (아이디 · 이름 · 학년 · 학교 · 진도)</h2>
         <div className="flex flex-col gap-2">
-          {students.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
-            >
-              <span className="font-medium text-zinc-800">
-                {s.name} <span className="text-xs text-zinc-400">(아이디 {s.loginId})</span>
-              </span>
-              <form action={deleteStudent.bind(null, s.id)}>
-                <button className="text-sm text-red-500 hover:underline">삭제</button>
+          {studentOverview.map(({ student: s, subjects: subjProgress }) => (
+            <details key={s.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+              <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2">
+                <span className="font-medium text-zinc-800">
+                  {s.name}
+                  <span className="ml-2 text-xs text-zinc-400">
+                    아이디 {s.loginId}
+                    {s.grade ? ` · ${s.grade}` : ""}
+                    {s.school ? ` · ${s.school}` : ""}
+                  </span>
+                </span>
+                <span className="flex gap-2">
+                  {subjProgress.map((sp) => (
+                    <span
+                      key={sp.key}
+                      className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-600"
+                    >
+                      {sp.icon} {sp.watched}/{sp.total}
+                    </span>
+                  ))}
+                </span>
+              </summary>
+
+              <form
+                action={updateStudent.bind(null, s.id)}
+                className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3"
+              >
+                <div className="flex gap-2">
+                  <label className="flex-1 text-xs text-zinc-500">
+                    이름
+                    <input
+                      name="name"
+                      defaultValue={s.name}
+                      className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                      required
+                    />
+                  </label>
+                  <label className="flex-1 text-xs text-zinc-500">
+                    아이디
+                    <input
+                      name="loginId"
+                      defaultValue={s.loginId}
+                      className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                      required
+                    />
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <label className="flex-1 text-xs text-zinc-500">
+                    학년
+                    <select
+                      name="grade"
+                      defaultValue={s.grade ?? ""}
+                      className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                    >
+                      <option value="">선택 안 함</option>
+                      {GRADE_OPTIONS.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex-1 text-xs text-zinc-500">
+                    학교
+                    <input
+                      name="school"
+                      defaultValue={s.school ?? ""}
+                      placeholder="예: 삼양초등학교"
+                      className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-1 flex flex-wrap gap-3 text-xs text-zinc-500">
+                  {subjProgress.map((sp) => (
+                    <span key={sp.key}>
+                      {sp.icon} {sp.label}: {sp.watched} / {sp.total}강
+                    </span>
+                  ))}
+                </div>
+
+                <div className="mt-1 flex justify-end gap-3">
+                  <button
+                    formAction={deleteStudent.bind(null, s.id)}
+                    className="text-sm text-red-500 hover:underline"
+                  >
+                    삭제
+                  </button>
+                  <button className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                    저장
+                  </button>
+                </div>
               </form>
-            </div>
+            </details>
           ))}
-          {students.length === 0 && <p className="text-sm text-zinc-400">등록된 학생이 없어요.</p>}
+          {studentOverview.length === 0 && (
+            <p className="text-sm text-zinc-400">등록된 학생이 없어요.</p>
+          )}
         </div>
 
-        <form action={createStudent} className="flex gap-2 rounded-lg border border-dashed border-zinc-300 p-3">
-          <input
-            name="name"
-            placeholder="학생 이름"
-            className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            required
-          />
-          <input
-            name="loginId"
-            placeholder="아이디"
-            className="w-32 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-            required
-          />
-          <button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
-            추가
-          </button>
+        <form
+          action={createStudent}
+          className="flex flex-col gap-2 rounded-lg border border-dashed border-zinc-300 p-3"
+        >
+          <p className="text-sm font-semibold text-zinc-700">➕ 새 학생 추가</p>
+          <div className="flex gap-2">
+            <input
+              name="name"
+              placeholder="학생 이름"
+              className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              required
+            />
+            <input
+              name="loginId"
+              placeholder="아이디"
+              className="w-32 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+              required
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              name="grade"
+              defaultValue=""
+              className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            >
+              <option value="">학년 선택 안 함</option>
+              {GRADE_OPTIONS.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <input
+              name="school"
+              placeholder="학교 (선택)"
+              className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            />
+            <button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+              추가
+            </button>
+          </div>
         </form>
       </section>
     </div>

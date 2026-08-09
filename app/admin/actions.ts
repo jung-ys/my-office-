@@ -43,9 +43,28 @@ export async function createStudent(formData: FormData) {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const loginId = String(formData.get("loginId") ?? "").trim();
+  const grade = String(formData.get("grade") ?? "").trim();
+  const school = String(formData.get("school") ?? "").trim();
   if (!name || !loginId) return;
 
-  await prisma.student.create({ data: { name, loginId } });
+  await prisma.student.create({
+    data: { name, loginId, grade: grade || null, school: school || null },
+  });
+  revalidatePath("/admin");
+}
+
+export async function updateStudent(studentId: string, formData: FormData) {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  const loginId = String(formData.get("loginId") ?? "").trim();
+  const grade = String(formData.get("grade") ?? "").trim();
+  const school = String(formData.get("school") ?? "").trim();
+  if (!name || !loginId) return;
+
+  await prisma.student.update({
+    where: { id: studentId },
+    data: { name, loginId, grade: grade || null, school: school || null },
+  });
   revalidatePath("/admin");
 }
 

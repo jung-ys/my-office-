@@ -18,6 +18,8 @@ model Student {
   id        String     @id @default(cuid())
   loginId   String     @unique // 학생이 입력하는 "아이디"
   name      String
+  grade     String? // 학년 (예: "초5", "중2"), 선택 사항
+  school    String? // 학교 이름, 선택 사항
   createdAt DateTime   @default(now())
   progress  Progress[]
 }
