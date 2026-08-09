@@ -1,6 +1,6 @@
 // 학원 문법·독해 영상 학습 사이트 - 데이터 모델
 // 구조: Subject(과목: 문법/독해) → Series(교재 시리즈) → Chapter(챕터/권/유닛) → Video(강의 영상)
-// 학생(Student)은 이름+PIN으로 로그인하고, Progress로 시청 여부를 기록한다.
+// 학생(Student)은 아이디+이름을 직접 입력해 로그인하고, Progress로 시청 여부를 기록한다.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,11 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 학생: 이름 선택 + 4자리 PIN으로 로그인
+// 학생: 아이디 + 이름을 직접 입력해서 로그인 (둘 다 맞아야 입장)
 model Student {
   id        String     @id @default(cuid())
+  loginId   String     @unique // 학생이 입력하는 "아이디"
   name      String
-  pin       String // 4자리 숫자 (로그인 시 확인)
   createdAt DateTime   @default(now())
   progress  Progress[]
 }

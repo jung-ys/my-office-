@@ -101,7 +101,7 @@ export default async function AdminPage({
 
       {/* 학생 관리 */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-bold text-zinc-800">🧒 학생 (이름 + 비밀번호 4자리)</h2>
+        <h2 className="font-bold text-zinc-800">🧒 학생 (아이디 + 이름)</h2>
         <div className="flex flex-col gap-2">
           {students.map((s) => (
             <div
@@ -109,7 +109,7 @@ export default async function AdminPage({
               className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3"
             >
               <span className="font-medium text-zinc-800">
-                {s.name} <span className="text-xs text-zinc-400">(PIN {s.pin})</span>
+                {s.name} <span className="text-xs text-zinc-400">(아이디 {s.loginId})</span>
               </span>
               <form action={deleteStudent.bind(null, s.id)}>
                 <button className="text-sm text-red-500 hover:underline">삭제</button>
@@ -127,10 +127,8 @@ export default async function AdminPage({
             required
           />
           <input
-            name="pin"
-            placeholder="비밀번호 4자리"
-            maxLength={4}
-            inputMode="numeric"
+            name="loginId"
+            placeholder="아이디"
             className="w-32 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             required
           />

@@ -42,11 +42,10 @@ export async function adminLogout() {
 export async function createStudent(formData: FormData) {
   await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
-  const pin = String(formData.get("pin") ?? "").trim();
-  if (!name) return;
-  if (!/^\d{4}$/.test(pin)) return;
+  const loginId = String(formData.get("loginId") ?? "").trim();
+  if (!name || !loginId) return;
 
-  await prisma.student.create({ data: { name, pin } });
+  await prisma.student.create({ data: { name, loginId } });
   revalidatePath("/admin");
 }
 

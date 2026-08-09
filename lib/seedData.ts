@@ -372,17 +372,17 @@ export const SUBJECTS: SeedSubject[] = [
 ];
 
 export const STUDENTS = [
-  { name: "김라이", pin: "1001" },
-  { name: "강승현", pin: "1002" },
-  { name: "김효진", pin: "1003" },
-  { name: "오지혜", pin: "1004" },
-  { name: "이시은", pin: "1005" },
-  { name: "손유찬", pin: "1006" },
-  { name: "김아영", pin: "1007" },
-  { name: "박서은", pin: "1008" },
-  { name: "양정후", pin: "1009" },
-  { name: "박승빈", pin: "1010" },
-  { name: "차유준", pin: "1011" }
+  { name: "김라이", loginId: "1001" },
+  { name: "강승현", loginId: "1002" },
+  { name: "김효진", loginId: "1003" },
+  { name: "오지혜", loginId: "1004" },
+  { name: "이시은", loginId: "1005" },
+  { name: "손유찬", loginId: "1006" },
+  { name: "김아영", loginId: "1007" },
+  { name: "박서은", loginId: "1008" },
+  { name: "양정후", loginId: "1009" },
+  { name: "박승빈", loginId: "1010" },
+  { name: "차유준", loginId: "1011" }
 ];
 
 /** 기존 데이터를 모두 지우고 위 SUBJECTS/STUDENTS로 다시 채웁니다. */
