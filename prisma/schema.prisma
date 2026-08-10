@@ -92,8 +92,10 @@ model Progress {
   watched        Boolean   @default(false)
   firstWatchedAt DateTime?
   lastWatchedAt  DateTime?
-  reviewCount    Int       @default(0) // 복습(재시청) 횟수
+  reviewCount    Int       @default(0) // 복습(재시청) 횟수 — 기능은 제거됐지만 컬럼은 남겨둠
   watchSeconds   Int? // 시청 완료를 누르기까지 화면에 머문 시간(초). 스킵 방지 참고용
+  autoCompleted  Boolean   @default(false) // 관리자의 "시작 지점 설정"으로 일괄 완료 처리된 것인지
+  // (true면 "오늘의 학습 기록"에서 제외 — 학생이 실제로 오늘 본 게 아니므로)
 
   @@unique([studentId, videoId])
 }

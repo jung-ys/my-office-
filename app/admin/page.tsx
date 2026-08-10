@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
-import { getAllStudentsProgressOverview } from "@/lib/progress";
+import { getAllStudentsProgressOverview, getTodayLearningLog } from "@/lib/progress";
 import { GRADE_OPTIONS } from "@/lib/grades";
 import { adminLogin, adminLogout, createStudent, deleteStudent, updateStudent } from "./actions";
 import SeedButton from "./SeedButton";
@@ -48,7 +48,7 @@ export default async function AdminPage({
     );
   }
 
-  const [subjects, studentOverview, assignments] = await Promise.all([
+  const [subjects, studentOverview, assignments, todayLog] = await Promise.all([
     prisma.subject.findMany({
       orderBy: { order: "asc" },
       include: {
@@ -65,6 +65,7 @@ export default async function AdminPage({
     }),
     getAllStudentsProgressOverview(),
     prisma.studentChapter.findMany({ select: { studentId: true, chapterId: true } }),
+    getTodayLearningLog(),
   ]);
 
   const assignedByStudent = new Map<string, Set<string>>();
@@ -146,6 +147,39 @@ export default async function AdminPage({
           🔄 {reset}님의 배정 교재와 학습 진도를 초기화했어요.
         </p>
       )}
+
+      {/* 오늘의 학습 기록 */}
+      <section className="flex flex-col gap-3">
+        <h2 className="font-bold text-zinc-800">🗓 오늘의 학습 기록</h2>
+        <div className="flex flex-col gap-2">
+          {todayLog.map((h) => (
+            <Link
+              key={h.id}
+              href={`/admin/students/${h.studentId}`}
+              className="flex items-center justify-between rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm hover:border-indigo-300 hover:bg-indigo-50"
+            >
+              <div>
+                <span className="font-medium text-zinc-800">{h.studentName}</span>
+                <span className="ml-2 text-xs text-zinc-400">
+                  {h.subjectIcon} {h.seriesTitle} · {h.chapterTitle} · {h.videoTitle}
+                </span>
+              </div>
+              <span className="shrink-0 text-xs text-zinc-400">
+                {h.watchedAt &&
+                  new Date(h.watchedAt).toLocaleTimeString("ko-KR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+              </span>
+            </Link>
+          ))}
+          {todayLog.length === 0 && (
+            <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-400">
+              오늘 학습한 기록이 아직 없어요.
+            </p>
+          )}
+        </div>
+      </section>
 
       {/* 최초 설정: 데이터가 비어있을 때 한 번에 채우기 */}
       <section className="flex flex-col items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
@@ -318,7 +352,15 @@ export default async function AdminPage({
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3">
-                <ResetStudentButton studentId={s.id} studentName={s.name} />
+                <div className="flex items-center gap-3">
+                  <ResetStudentButton studentId={s.id} studentName={s.name} />
+                  <Link
+                    href={`/admin/students/${s.id}`}
+                    className="text-sm text-indigo-600 hover:underline"
+                  >
+                    📋 학습 기록 보기
+                  </Link>
+                </div>
                 <div className="flex gap-3">
                   <button
                     form={`student-form-${s.id}`}

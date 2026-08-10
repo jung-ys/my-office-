@@ -203,3 +203,87 @@ export async function getContinueLessonForSubject(subjectId: string, studentId: 
   const lastSeries = series[series.length - 1];
   return { kind: "done" as const, seriesTitle: lastSeries.title, seriesId: lastSeries.id };
 }
+
+/** 한국 시간(KST) 기준 "오늘 자정"에 해당하는 시각을 Date로 반환합니다. */
+function startOfTodayKST(): Date {
+  const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const kstNow = new Date(Date.now() + KST_OFFSET_MS);
+  return new Date(
+    Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate(), 0, 0, 0) -
+      KST_OFFSET_MS
+  );
+}
+
+/**
+ * 관리자 페이지의 "오늘의 학습 기록"용 — 오늘(한국 시간 기준) 학생들이 실제로 시청 완료한
+ * 영상 목록을 최신순으로 반환합니다. 관리자가 "시작 지점 설정"으로 일괄 완료 처리한 것은
+ * 학생이 오늘 실제로 본 게 아니므로 제외해요.
+ */
+export async function getTodayLearningLog() {
+  const logs = await prisma.progress.findMany({
+    where: { watched: true, autoCompleted: false, firstWatchedAt: { gte: startOfTodayKST() } },
+    orderBy: { firstWatchedAt: "desc" },
+    include: {
+      student: { select: { id: true, name: true } },
+      video: {
+        select: {
+          title: true,
+          chapter: {
+            select: {
+              title: true,
+              series: {
+                select: { title: true, subject: { select: { icon: true, label: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return logs.map((p) => ({
+    id: p.id,
+    studentId: p.student.id,
+    studentName: p.student.name,
+    subjectIcon: p.video.chapter.series.subject.icon,
+    subjectLabel: p.video.chapter.series.subject.label,
+    seriesTitle: p.video.chapter.series.title,
+    chapterTitle: p.video.chapter.title,
+    videoTitle: p.video.title,
+    watchedAt: p.firstWatchedAt,
+  }));
+}
+
+/** 관리자 페이지에서 학생 한 명의 전체 학습 기록(시청 완료한 영상)을 최신순으로 가져옵니다. */
+export async function getStudentLearningHistory(studentId: string) {
+  const logs = await prisma.progress.findMany({
+    where: { studentId, watched: true },
+    orderBy: { firstWatchedAt: "desc" },
+    include: {
+      video: {
+        select: {
+          title: true,
+          chapter: {
+            select: {
+              title: true,
+              series: {
+                select: { title: true, subject: { select: { icon: true, label: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return logs.map((p) => ({
+    id: p.id,
+    subjectIcon: p.video.chapter.series.subject.icon,
+    subjectLabel: p.video.chapter.series.subject.label,
+    seriesTitle: p.video.chapter.series.title,
+    chapterTitle: p.video.chapter.title,
+    videoTitle: p.video.title,
+    watchedAt: p.firstWatchedAt,
+    autoCompleted: p.autoCompleted,
+  }));
+}

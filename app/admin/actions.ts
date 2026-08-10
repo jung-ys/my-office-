@@ -179,8 +179,15 @@ export async function setStartingPoint(
       priorVideoIds.map((videoId) =>
         prisma.progress.upsert({
           where: { studentId_videoId: { studentId, videoId } },
-          create: { studentId, videoId, watched: true, firstWatchedAt: now, lastWatchedAt: now },
-          update: { watched: true, lastWatchedAt: now },
+          create: {
+            studentId,
+            videoId,
+            watched: true,
+            firstWatchedAt: now,
+            lastWatchedAt: now,
+            autoCompleted: true,
+          },
+          update: { watched: true, lastWatchedAt: now, autoCompleted: true },
         })
       )
     );
