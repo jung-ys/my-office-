@@ -254,10 +254,14 @@ export async function getTodayLearningLog() {
   }));
 }
 
-/** 관리자 페이지에서 학생 한 명의 전체 학습 기록(시청 완료한 영상)을 최신순으로 가져옵니다. */
+/**
+ * 관리자 페이지에서 학생 한 명의 학습 기록(실제로 시청 완료한 영상)을 최신순으로 가져옵니다.
+ * "시작 지점 설정"으로 일괄 완료 처리된 것(이미 알고 있다고 표시한 이전 영상들)은
+ * 실제 학습 기록이 아니므로 제외해요.
+ */
 export async function getStudentLearningHistory(studentId: string) {
   const logs = await prisma.progress.findMany({
-    where: { studentId, watched: true },
+    where: { studentId, watched: true, autoCompleted: false },
     orderBy: { firstWatchedAt: "desc" },
     include: {
       video: {
@@ -284,6 +288,5 @@ export async function getStudentLearningHistory(studentId: string) {
     chapterTitle: p.video.chapter.title,
     videoTitle: p.video.title,
     watchedAt: p.firstWatchedAt,
-    autoCompleted: p.autoCompleted,
   }));
 }

@@ -32,7 +32,8 @@ export default async function AdminStudentHistoryPage({
           </span>
         </h1>
         <p className="mt-1 text-xs text-zinc-500">
-          총 {history.length}개 강의를 완료했어요 (최신순)
+          실제로 시청 완료한 {history.length}개 강의 (최신순 · &quot;시작 지점 설정&quot;으로
+          일괄 완료 처리된 건 제외)
         </p>
       </div>
 
@@ -56,7 +57,6 @@ export default async function AdminStudentHistoryPage({
                     hour: "2-digit",
                     minute: "2-digit",
                   })}
-                {h.autoCompleted && " · 🚩 시작 지점 설정으로 자동 완료"}
               </p>
             </div>
             <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">

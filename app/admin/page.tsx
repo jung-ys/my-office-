@@ -149,9 +149,11 @@ export default async function AdminPage({
       )}
 
       {/* 오늘의 학습 기록 */}
-      <section className="flex flex-col gap-3">
-        <h2 className="font-bold text-zinc-800">🗓 오늘의 학습 기록</h2>
-        <div className="flex flex-col gap-2">
+      <details className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+        <summary className="cursor-pointer font-bold text-zinc-800">
+          🗓 오늘의 학습 기록 ({todayLog.length}건)
+        </summary>
+        <div className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3">
           {todayLog.map((h) => (
             <Link
               key={h.id}
@@ -179,7 +181,7 @@ export default async function AdminPage({
             </p>
           )}
         </div>
-      </section>
+      </details>
 
       {/* 최초 설정: 데이터가 비어있을 때 한 번에 채우기 */}
       <section className="flex flex-col items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
