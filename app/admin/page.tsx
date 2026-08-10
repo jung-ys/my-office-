@@ -169,6 +169,7 @@ export default async function AdminPage({
               <span className="shrink-0 text-xs text-zinc-400">
                 {h.watchedAt &&
                   new Date(h.watchedAt).toLocaleTimeString("ko-KR", {
+                    timeZone: "Asia/Seoul",
                     hour: "2-digit",
                     minute: "2-digit",
                   })}

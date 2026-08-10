@@ -51,6 +51,7 @@ export default async function AdminStudentHistoryPage({
               <p className="mt-1 text-xs text-zinc-400">
                 {h.watchedAt &&
                   new Date(h.watchedAt).toLocaleString("ko-KR", {
+                    timeZone: "Asia/Seoul",
                     year: "numeric",
                     month: "long",
                     day: "numeric",

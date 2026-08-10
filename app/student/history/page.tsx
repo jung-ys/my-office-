@@ -42,6 +42,7 @@ export default async function HistoryPage() {
               <p className="mt-1 text-xs text-zinc-400">
                 {p.lastWatchedAt &&
                   new Date(p.lastWatchedAt).toLocaleString("ko-KR", {
+                    timeZone: "Asia/Seoul",
                     month: "long",
                     day: "numeric",
                     hour: "2-digit",
