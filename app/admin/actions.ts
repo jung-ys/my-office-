@@ -228,6 +228,28 @@ export async function deleteStudent(studentId: string) {
   redirect(`/admin?deleted=${encodeURIComponent(student.name)}`);
 }
 
+// ---- 과목 관리 ----
+
+/** 새 과목(예: "내신대비 영상")을 추가합니다. URL에 쓰이는 key는 자동으로 만들어져요. */
+export async function createSubject(formData: FormData) {
+  await requireAdmin();
+  const label = String(formData.get("label") ?? "").trim();
+  const icon = String(formData.get("icon") ?? "").trim() || "📘";
+  const order = Number(formData.get("order") ?? 0) || 0;
+  if (!label) return;
+
+  const key = `subject-${Math.random().toString(36).slice(2, 10)}`;
+  await prisma.subject.create({ data: { key, label, icon, order } });
+  revalidatePath("/admin");
+}
+
+/** 과목을 삭제합니다. 그 안의 시리즈/챕터/영상/배정/진도까지 전부 함께 지워져요. */
+export async function deleteSubject(subjectId: string) {
+  await requireAdmin();
+  await prisma.subject.delete({ where: { id: subjectId } });
+  revalidatePath("/admin");
+}
+
 // ---- 시리즈 관리 ----
 
 export async function createSeries(subjectId: string, formData: FormData) {

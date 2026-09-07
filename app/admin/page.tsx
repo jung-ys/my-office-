@@ -3,11 +3,19 @@ import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { getAllStudentsProgressOverview, getTodayLearningLog } from "@/lib/progress";
 import { GRADE_OPTIONS } from "@/lib/grades";
-import { adminLogin, adminLogout, createStudent, deleteStudent, updateStudent } from "./actions";
+import {
+  adminLogin,
+  adminLogout,
+  createStudent,
+  createSubject,
+  deleteStudent,
+  updateStudent,
+} from "./actions";
 import SeedButton from "./SeedButton";
 import SeriesAssignmentGroup from "./SeriesAssignmentGroup";
 import ResetStudentButton from "./ResetStudentButton";
 import StartingPointForm from "./StartingPointForm";
+import DeleteSubjectButton from "./DeleteSubjectButton";
 
 export default async function AdminPage({
   searchParams,
@@ -203,12 +211,15 @@ export default async function AdminPage({
               <p className="font-semibold text-zinc-800">
                 {subject.icon} {subject.label}
               </p>
-              <Link
-                href={`/admin/subjects/${subject.key}`}
-                className="text-sm text-indigo-600 hover:underline"
-              >
-                시리즈 관리 →
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/admin/subjects/${subject.key}`}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  시리즈 관리 →
+                </Link>
+                <DeleteSubjectButton subjectId={subject.id} subjectLabel={subject.label} />
+              </div>
             </div>
             <p className="mt-1 text-xs text-zinc-400">
               시리즈 {subject.series.length}개:{" "}
@@ -217,6 +228,33 @@ export default async function AdminPage({
           </div>
         ))}
         {subjects.length === 0 && <p className="text-sm text-zinc-400">등록된 과목이 없어요.</p>}
+
+        <form
+          action={createSubject}
+          className="flex gap-2 rounded-lg border border-dashed border-zinc-300 p-3"
+        >
+          <input
+            name="label"
+            placeholder="새 과목 이름 (예: 내신대비 영상)"
+            className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            required
+          />
+          <input
+            name="icon"
+            placeholder="아이콘(선택, 예: 📝)"
+            className="w-28 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+          <input
+            name="order"
+            type="number"
+            placeholder="순서"
+            defaultValue={subjects.length + 1}
+            className="w-20 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          />
+          <button className="rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+            추가
+          </button>
+        </form>
       </section>
 
       {/* 학생 관리 */}
