@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
 import { createVideo, deleteVideo, reorderVideos, updateVideo } from "../../../../../../actions";
-import VideoOrderList from "./VideoOrderList";
+import VideoManagerList from "./VideoManagerList";
 
 export default async function AdminChapterPage({
   params,
@@ -41,101 +41,29 @@ export default async function AdminChapterPage({
         <h1 className="mt-1 text-xl font-bold">
           {chapter.series.title} · {chapter.title} — 영상 관리
         </h1>
-      </div>
-
-      {chapter.videos.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-zinc-400">
+        {chapter.videos.length > 0 && (
+          <p className="mt-1 text-xs text-zinc-400">
             ⠿ 손잡이를 눌러서 드래그하면 순서가 바뀌어요 (번호는 자동으로 다시 매겨져요)
           </p>
-          <VideoOrderList
-            videos={chapter.videos.map((v) => ({
-              id: v.id,
-              title: v.title,
-              hasUrl: !!v.videoUrl,
-            }))}
-            onReorder={boundReorder}
-          />
-        </div>
-      )}
-
-      <div className="flex flex-col gap-3">
-        {chapter.videos.map((v) => (
-          <details key={v.id} className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
-            <summary className="flex cursor-pointer items-center justify-between font-medium text-zinc-800">
-              <span>
-                {v.order}. {v.title}
-              </span>
-              <span className="text-xs text-zinc-400">
-                {v.videoUrl ? "✅ 링크 있음" : "⏳ 준비 중"}
-              </span>
-            </summary>
-
-            <form
-              action={boundUpdate.bind(null, v.id)}
-              className="mt-3 flex flex-col gap-2 border-t border-zinc-100 pt-3"
-            >
-              <label className="text-xs text-zinc-500">
-                제목
-                <input
-                  name="title"
-                  defaultValue={v.title}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                  required
-                />
-              </label>
-              <label className="text-xs text-zinc-500">
-                영상 링크 (네이버 마이박스, 유튜브 등)
-                <input
-                  name="videoUrl"
-                  defaultValue={v.videoUrl}
-                  placeholder="비워두면 학생 화면에 '준비 중'으로 표시돼요"
-                  className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                />
-              </label>
-              <div className="flex gap-2">
-                <label className="flex-1 text-xs text-zinc-500">
-                  교재 페이지
-                  <input
-                    name="page"
-                    defaultValue={v.page ?? ""}
-                    placeholder="p.14"
-                    className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="flex-1 text-xs text-zinc-500">
-                  길이(분) *
-                  <input
-                    name="duration"
-                    type="number"
-                    min="1"
-                    defaultValue={v.duration ?? ""}
-                    className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                    required
-                  />
-                </label>
-              </div>
-              <p className="text-xs text-zinc-400">
-                순서를 바꾸고 싶으면 위쪽 목록에서 드래그해주세요.
-              </p>
-              <div className="mt-1 flex justify-end gap-3">
-                <button
-                  formAction={boundDelete.bind(null, v.id)}
-                  className="text-sm text-red-500 hover:underline"
-                >
-                  삭제
-                </button>
-                <button className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-indigo-700">
-                  저장
-                </button>
-              </div>
-            </form>
-          </details>
-        ))}
-        {chapter.videos.length === 0 && (
-          <p className="text-sm text-zinc-400">아직 등록된 영상이 없어요.</p>
         )}
       </div>
+
+      <VideoManagerList
+        videos={chapter.videos.map((v) => ({
+          id: v.id,
+          order: v.order,
+          title: v.title,
+          videoUrl: v.videoUrl,
+          page: v.page,
+          duration: v.duration,
+        }))}
+        onReorder={boundReorder}
+        updateAction={boundUpdate}
+        deleteAction={boundDelete}
+      />
+      {chapter.videos.length === 0 && (
+        <p className="text-sm text-zinc-400">아직 등록된 영상이 없어요.</p>
+      )}
 
       <form
         action={boundCreate}
