@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { isAdmin } from "@/lib/auth";
-import { createVideo, deleteVideo, updateVideo } from "../../../../../../actions";
+import { createVideo, deleteVideo, reorderVideos, updateVideo } from "../../../../../../actions";
+import VideoOrderList from "./VideoOrderList";
 
 export default async function AdminChapterPage({
   params,
@@ -26,6 +27,7 @@ export default async function AdminChapterPage({
   const boundCreate = createVideo.bind(null, subjectKey, seriesId, chapterId);
   const boundUpdate = updateVideo.bind(null, subjectKey, seriesId, chapterId);
   const boundDelete = deleteVideo.bind(null, subjectKey, seriesId, chapterId);
+  const boundReorder = reorderVideos.bind(null, subjectKey, seriesId, chapterId);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
@@ -40,6 +42,22 @@ export default async function AdminChapterPage({
           {chapter.series.title} · {chapter.title} — 영상 관리
         </h1>
       </div>
+
+      {chapter.videos.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-zinc-400">
+            ⠿ 손잡이를 눌러서 드래그하면 순서가 바뀌어요 (번호는 자동으로 다시 매겨져요)
+          </p>
+          <VideoOrderList
+            videos={chapter.videos.map((v) => ({
+              id: v.id,
+              title: v.title,
+              hasUrl: !!v.videoUrl,
+            }))}
+            onReorder={boundReorder}
+          />
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         {chapter.videos.map((v) => (
@@ -86,15 +104,6 @@ export default async function AdminChapterPage({
                   />
                 </label>
                 <label className="flex-1 text-xs text-zinc-500">
-                  순서
-                  <input
-                    name="order"
-                    type="number"
-                    defaultValue={v.order}
-                    className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                  />
-                </label>
-                <label className="flex-1 text-xs text-zinc-500">
                   길이(분) *
                   <input
                     name="duration"
@@ -106,6 +115,9 @@ export default async function AdminChapterPage({
                   />
                 </label>
               </div>
+              <p className="text-xs text-zinc-400">
+                순서를 바꾸고 싶으면 위쪽 목록에서 드래그해주세요.
+              </p>
               <div className="mt-1 flex justify-end gap-3">
                 <button
                   formAction={boundDelete.bind(null, v.id)}
@@ -151,24 +163,32 @@ export default async function AdminChapterPage({
             className="w-32 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
           />
           <input
-            name="order"
-            type="number"
-            placeholder="순서"
-            defaultValue={chapter.videos.length + 1}
-            className="w-24 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-          />
-          <input
             name="duration"
             type="number"
             min="1"
             placeholder="길이(분) *"
-            className="w-24 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+            className="w-28 rounded-lg border border-zinc-300 px-3 py-2 text-sm"
             required
           />
-          <button className="ml-auto rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-            추가
-          </button>
         </div>
+        <label className="text-xs text-zinc-500">
+          삽입 위치
+          <select
+            name="insertAfterId"
+            defaultValue=""
+            className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
+          >
+            <option value="">맨 뒤에 추가</option>
+            {chapter.videos.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.order}. {v.title} 다음에 추가
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="self-end rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+          추가
+        </button>
       </form>
     </div>
   );

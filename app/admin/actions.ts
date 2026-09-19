@@ -299,14 +299,35 @@ export async function createVideo(
   const title = String(formData.get("title") ?? "").trim();
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
   const page = String(formData.get("page") ?? "").trim();
-  const order = Number(formData.get("order") ?? 0) || 0;
+  const insertAfterId = String(formData.get("insertAfterId") ?? "").trim();
   const durationRaw = String(formData.get("duration") ?? "").trim();
   const duration = durationRaw ? Number(durationRaw) : null;
   if (!title || !duration || duration <= 0) return;
 
-  await prisma.video.create({
-    data: { chapterId, title, videoUrl, page: page || null, order, duration },
+  // 삽입 위치 계산: 지정한 영상 바로 다음 자리에 넣고, 그 뒤 영상들은 한 칸씩 밀어냄
+  // (지정하지 않았거나 목록에 없으면 맨 뒤에 추가)
+  const siblings = await prisma.video.findMany({
+    where: { chapterId },
+    orderBy: { order: "asc" },
+    select: { id: true, order: true },
   });
+
+  let newOrder = 1;
+  if (siblings.length > 0) {
+    const afterIdx = insertAfterId ? siblings.findIndex((v) => v.id === insertAfterId) : -1;
+    const anchor = afterIdx >= 0 ? siblings[afterIdx] : siblings[siblings.length - 1];
+    newOrder = anchor.order + 1;
+  }
+
+  await prisma.$transaction([
+    prisma.video.updateMany({
+      where: { chapterId, order: { gte: newOrder } },
+      data: { order: { increment: 1 } },
+    }),
+    prisma.video.create({
+      data: { chapterId, title, videoUrl, page: page || null, order: newOrder, duration },
+    }),
+  ]);
   revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${chapterId}`);
 }
 
@@ -321,15 +342,30 @@ export async function updateVideo(
   const title = String(formData.get("title") ?? "").trim();
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
   const page = String(formData.get("page") ?? "").trim();
-  const order = Number(formData.get("order") ?? 0) || 0;
   const durationRaw = String(formData.get("duration") ?? "").trim();
   const duration = durationRaw ? Number(durationRaw) : null;
   if (!title || !duration || duration <= 0) return;
 
   await prisma.video.update({
     where: { id: videoId },
-    data: { title, videoUrl, page: page || null, order, duration },
+    data: { title, videoUrl, page: page || null, duration },
   });
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${chapterId}`);
+}
+
+/** 목록을 드래그로 옮긴 뒤, 화면에 보이는 순서 그대로 order를 1부터 다시 매깁니다. */
+export async function reorderVideos(
+  subjectKey: string,
+  seriesId: string,
+  chapterId: string,
+  orderedVideoIds: string[]
+) {
+  await requireAdmin();
+  await prisma.$transaction(
+    orderedVideoIds.map((id, idx) =>
+      prisma.video.update({ where: { id, chapterId }, data: { order: idx + 1 } })
+    )
+  );
   revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${chapterId}`);
 }
 
