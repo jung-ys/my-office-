@@ -281,6 +281,26 @@ export async function createChapter(subjectKey: string, seriesId: string, formDa
   revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}`);
 }
 
+/** 챕터(권/유닛) 소제목이 이상하게 들어가 있을 때 수동으로 고칠 수 있게 합니다. */
+export async function updateChapter(
+  subjectKey: string,
+  seriesId: string,
+  chapterId: string,
+  formData: FormData
+) {
+  await requireAdmin();
+  const title = String(formData.get("title") ?? "").trim();
+  const orderRaw = String(formData.get("order") ?? "").trim();
+  const order = orderRaw ? Number(orderRaw) : NaN;
+  if (!title) return;
+
+  await prisma.chapter.update({
+    where: { id: chapterId },
+    data: { title, ...(Number.isFinite(order) ? { order } : {}) },
+  });
+  revalidatePath(`/admin/subjects/${subjectKey}/series/${seriesId}`);
+}
+
 export async function deleteChapter(subjectKey: string, seriesId: string, chapterId: string) {
   await requireAdmin();
   await prisma.chapter.delete({ where: { id: chapterId } });
