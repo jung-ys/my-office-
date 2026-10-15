@@ -44,19 +44,48 @@ export default async function SeriesChapterListPage({
         {chapters.map((ch) => {
           const c = byChapterId[ch.id];
           return (
-            <Link
+            <div
               key={ch.id}
-              href={`/student/subjects/${subjectKey}/series/${seriesId}/chapters/${ch.id}`}
-              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4 shadow-sm hover:border-indigo-400 hover:bg-indigo-50"
+              className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm"
             >
-              <div>
-                <p className="font-semibold text-zinc-900">{ch.title}</p>
-                <p className="mt-0.5 text-xs text-zinc-500">
-                  {c ? `${c.watched} / ${c.total}강 완료` : ""}
-                </p>
-              </div>
-              <span className="text-zinc-400">›</span>
-            </Link>
+              <Link
+                href={`/student/subjects/${subjectKey}/series/${seriesId}/chapters/${ch.id}`}
+                className="flex items-center justify-between px-5 py-4 hover:bg-indigo-50"
+              >
+                <div>
+                  <p className="font-semibold text-zinc-900">{ch.title}</p>
+                  <p className="mt-0.5 text-xs text-zinc-500">
+                    {c ? `${c.watched} / ${c.total}강 완료` : ""}
+                  </p>
+                </div>
+                <span className="text-zinc-400">›</span>
+              </Link>
+              {c && c.videos.length > 0 && (
+                <ul className="flex flex-col divide-y divide-zinc-100 border-t border-zinc-100 bg-zinc-50/60">
+                  {c.videos.map((v, idx) => (
+                    <li key={v.id}>
+                      <Link
+                        href={`/student/videos/${v.id}`}
+                        className="flex items-center gap-2.5 px-5 py-2.5 text-sm hover:bg-indigo-50"
+                      >
+                        <span
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            v.watched
+                              ? "bg-emerald-500 text-white"
+                              : "bg-zinc-200 text-zinc-500"
+                          }`}
+                        >
+                          {v.watched ? "✓" : idx + 1}
+                        </span>
+                        <span className={v.watched ? "text-zinc-500" : "text-zinc-700"}>
+                          {v.title}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           );
         })}
         {chapters.length === 0 && (

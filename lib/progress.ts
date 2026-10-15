@@ -44,7 +44,12 @@ export async function getSeriesProgressSummary(seriesId: string, studentId: stri
   const chapters = await prisma.chapter.findMany({
     where: { seriesId, assignedStudents: { some: { studentId } } },
     orderBy: { order: "asc" },
-    include: { videos: { include: { progress: { where: { studentId } } } } },
+    include: {
+      videos: {
+        orderBy: { order: "asc" },
+        include: { progress: { where: { studentId } } },
+      },
+    },
   });
 
   let total = 0;
@@ -52,15 +57,24 @@ export async function getSeriesProgressSummary(seriesId: string, studentId: stri
   const perChapter = chapters.map((ch) => {
     let chTotal = 0;
     let chWatched = 0;
-    ch.videos.forEach((v) => {
+    const videos = ch.videos.map((v) => {
       chTotal++;
       total++;
-      if (v.progress[0]?.watched) {
+      const isWatched = v.progress[0]?.watched ?? false;
+      if (isWatched) {
         chWatched++;
         watched++;
       }
+      return { id: v.id, title: v.title, watched: isWatched };
     });
-    return { id: ch.id, title: ch.title, order: ch.order, total: chTotal, watched: chWatched };
+    return {
+      id: ch.id,
+      title: ch.title,
+      order: ch.order,
+      total: chTotal,
+      watched: chWatched,
+      videos,
+    };
   });
 
   return { total, watched, chapters: perChapter };
