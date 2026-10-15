@@ -158,17 +158,21 @@ export default function VideoManagerList({
                 />
               </label>
               <label className="flex-1 text-xs text-zinc-500">
-                길이(분) *
+                길이(분)
                 <input
                   name="duration"
                   type="number"
                   min="1"
                   defaultValue={v.duration ?? ""}
+                  placeholder="영상 링크 생기면 입력"
                   className="mt-1 w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm"
-                  required
                 />
               </label>
             </div>
+            <p className="text-xs text-zinc-400">
+              길이를 비워두면 일단 저장되지만, 시청 완료 판정 기준이 정확하지 않아요 — 영상
+              링크를 넣을 때 같이 채워주세요.
+            </p>
             <p className="text-xs text-zinc-400">
               순서를 바꾸고 싶으면 위의 ⠿ 손잡이를 드래그해주세요.
             </p>

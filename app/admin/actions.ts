@@ -363,8 +363,14 @@ export async function updateVideo(
   const videoUrl = String(formData.get("videoUrl") ?? "").trim();
   const page = String(formData.get("page") ?? "").trim();
   const durationRaw = String(formData.get("duration") ?? "").trim();
-  const duration = durationRaw ? Number(durationRaw) : null;
-  if (!title || !duration || duration <= 0) return;
+  const parsedDuration = durationRaw ? Number(durationRaw) : null;
+  // 길이는 입력 안 해도 저장돼요 (아직 영상 링크가 없는 자리도 제목만 먼저 고칠 수 있도록).
+  // 숫자가 이상하면(0 이하 등) 그냥 길이 없음으로 처리하지, 저장 자체를 막지는 않음
+  const duration =
+    parsedDuration !== null && Number.isFinite(parsedDuration) && parsedDuration > 0
+      ? parsedDuration
+      : null;
+  if (!title) return;
 
   await prisma.video.update({
     where: { id: videoId },
