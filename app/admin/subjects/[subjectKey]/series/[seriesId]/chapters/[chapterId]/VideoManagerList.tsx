@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 type VideoData = {
   id: string;
@@ -21,11 +21,13 @@ export default function VideoManagerList({
   onReorder,
   updateAction,
   deleteAction,
+  focusVideoId,
 }: {
   videos: VideoData[];
   onReorder: (orderedVideoIds: string[]) => void;
   updateAction: (videoId: string, formData: FormData) => void;
   deleteAction: (videoId: string) => void;
+  focusVideoId?: string;
 }) {
   const [videos, setVideos] = useState(initialVideos);
   const [syncedInitialVideos, setSyncedInitialVideos] = useState(initialVideos);
@@ -38,6 +40,16 @@ export default function VideoManagerList({
     setSyncedInitialVideos(initialVideos);
     setVideos(initialVideos);
   }
+
+  // 목록에서 특정 영상을 콕 찍어 들어온 경우(예: 시리즈 화면의 스토리 목록 클릭),
+  // 그 영상의 편집 카드를 자동으로 펼치고 화면에 보이도록 스크롤해줘요.
+  useEffect(() => {
+    if (!focusVideoId) return;
+    const el = itemRefs.current.get(focusVideoId);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusVideoId]);
 
   function computeTargetIndex(clientY: number, excludeId: string): number {
     const others = videos.filter((v) => v.id !== excludeId);
@@ -85,7 +97,11 @@ export default function VideoManagerList({
             else itemRefs.current.delete(v.id);
           }}
           className={`rounded-lg border bg-white px-4 py-3 transition-shadow ${
-            draggingId === v.id ? "border-indigo-300 shadow-md" : "border-zinc-200"
+            draggingId === v.id
+              ? "border-indigo-300 shadow-md"
+              : v.id === focusVideoId
+                ? "border-indigo-300 ring-2 ring-indigo-100"
+                : "border-zinc-200"
           } ${isPending ? "opacity-60" : ""}`}
         >
           <summary className="flex cursor-pointer items-center gap-2 font-medium text-zinc-800">

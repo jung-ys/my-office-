@@ -82,7 +82,7 @@ export default async function AdminSeriesPage({
                 {ch.videos.map((v, idx) => (
                   <li key={v.id}>
                     <Link
-                      href={`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${ch.id}`}
+                      href={`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${ch.id}?video=${v.id}`}
                       className="flex items-center gap-2 rounded px-1 py-0.5 text-xs text-zinc-500 hover:bg-indigo-50 hover:text-indigo-700"
                     >
                       <span className="w-5 shrink-0 text-center text-zinc-300">{idx + 1}</span>

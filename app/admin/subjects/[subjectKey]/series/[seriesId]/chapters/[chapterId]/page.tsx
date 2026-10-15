@@ -7,12 +7,15 @@ import VideoManagerList from "./VideoManagerList";
 
 export default async function AdminChapterPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ subjectKey: string; seriesId: string; chapterId: string }>;
+  searchParams: Promise<{ video?: string }>;
 }) {
   if (!(await isAdmin())) redirect("/admin");
 
   const { subjectKey, seriesId, chapterId } = await params;
+  const { video: focusVideoId } = await searchParams;
   const chapter = await prisma.chapter.findUnique({
     where: { id: chapterId },
     include: {
@@ -60,6 +63,7 @@ export default async function AdminChapterPage({
         onReorder={boundReorder}
         updateAction={boundUpdate}
         deleteAction={boundDelete}
+        focusVideoId={focusVideoId}
       />
       {chapter.videos.length === 0 && (
         <p className="text-sm text-zinc-400">아직 등록된 영상이 없어요.</p>
