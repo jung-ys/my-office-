@@ -78,12 +78,17 @@ export default async function AdminSeriesPage({
               </button>
             </form>
             {ch.videos.length > 0 && (
-              <ul className="mt-2 flex flex-col gap-1 border-t border-zinc-100 pt-2">
+              <ul className="mt-2 flex flex-col gap-0.5 border-t border-zinc-100 pt-2">
                 {ch.videos.map((v, idx) => (
-                  <li key={v.id} className="flex items-center gap-2 text-xs text-zinc-500">
-                    <span className="w-5 shrink-0 text-center text-zinc-300">{idx + 1}</span>
-                    <span className="flex-1 truncate">{v.title}</span>
-                    <span className="shrink-0">{v.videoUrl ? "✅" : "⏳"}</span>
+                  <li key={v.id}>
+                    <Link
+                      href={`/admin/subjects/${subjectKey}/series/${seriesId}/chapters/${ch.id}`}
+                      className="flex items-center gap-2 rounded px-1 py-0.5 text-xs text-zinc-500 hover:bg-indigo-50 hover:text-indigo-700"
+                    >
+                      <span className="w-5 shrink-0 text-center text-zinc-300">{idx + 1}</span>
+                      <span className="flex-1 truncate">{v.title}</span>
+                      <span className="shrink-0">{v.videoUrl ? "✅" : "⏳"}</span>
+                    </Link>
                   </li>
                 ))}
               </ul>

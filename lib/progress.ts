@@ -304,3 +304,55 @@ export async function getStudentLearningHistory(studentId: string) {
     watchedAt: p.firstWatchedAt,
   }));
 }
+
+/**
+ * 영상 재생 화면의 "이전/다음 강의" 계산용. 같은 챕터 안에서만 보던 것과 달리,
+ * 이 과목에서 학생에게 배정된 전체 커리큘럼을 순서대로(시리즈 순서 → 챕터 순서 →
+ * 영상 순서) 쭉 이어 붙여서 이전/다음을 찾아요. 그래서 한 책(예: 777 2권)의
+ * 마지막 영상을 다 보면, 다음 배정된 책(예: 777 3권)의 첫 영상으로 자동으로
+ * 이어져요. (물론 학생이 직접 목록에서 다른 영상을 골라 보는 것도 그대로 가능해요)
+ */
+export async function getAdjacentVideos(videoId: string, studentId: string) {
+  const current = await prisma.video.findUnique({
+    where: { id: videoId },
+    select: { chapter: { select: { series: { select: { subjectId: true } } } } },
+  });
+  if (!current) return { prevVideo: null, nextVideo: null };
+
+  const subjectId = current.chapter.series.subjectId;
+
+  const seriesList = await prisma.series.findMany({
+    where: { subjectId, chapters: { some: { assignedStudents: { some: { studentId } } } } },
+    orderBy: { order: "asc" },
+    include: {
+      chapters: {
+        where: { assignedStudents: { some: { studentId } } },
+        orderBy: { order: "asc" },
+        include: { videos: { orderBy: { order: "asc" }, select: { id: true, title: true } } },
+      },
+    },
+  });
+
+  type FlatVideo = {
+    id: string;
+    title: string;
+    chapterId: string;
+    seriesTitle: string;
+  };
+  const flat: FlatVideo[] = [];
+  for (const se of seriesList) {
+    for (const ch of se.chapters) {
+      for (const v of ch.videos) {
+        flat.push({ id: v.id, title: v.title, chapterId: ch.id, seriesTitle: se.title });
+      }
+    }
+  }
+
+  const idx = flat.findIndex((v) => v.id === videoId);
+  if (idx === -1) return { prevVideo: null, nextVideo: null };
+
+  return {
+    prevVideo: idx > 0 ? flat[idx - 1] : null,
+    nextVideo: idx < flat.length - 1 ? flat[idx + 1] : null,
+  };
+}

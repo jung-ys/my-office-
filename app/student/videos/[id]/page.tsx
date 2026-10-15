@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getStudentSession } from "@/lib/auth";
+import { getAdjacentVideos } from "@/lib/progress";
 import VideoPlayer from "./VideoPlayer";
 
 export default async function VideoPlayerPage({
@@ -27,13 +28,7 @@ export default async function VideoPlayerPage({
   });
   if (!video || video.chapter.assignedStudents.length === 0) notFound();
 
-  const siblings = await prisma.video.findMany({
-    where: { chapterId: video.chapterId },
-    orderBy: { order: "asc" },
-  });
-  const idx = siblings.findIndex((v) => v.id === video.id);
-  const prevVideo = idx > 0 ? siblings[idx - 1] : null;
-  const nextVideo = idx < siblings.length - 1 ? siblings[idx + 1] : null;
+  const { prevVideo, nextVideo } = await getAdjacentVideos(video.id, student.id);
 
   const progress = video.progress[0];
   const watched = progress?.watched ?? false;
@@ -82,7 +77,9 @@ export default async function VideoPlayerPage({
             href={`/student/videos/${nextVideo.id}`}
             className="font-semibold text-indigo-600 hover:text-indigo-800"
           >
-            다음 강의 →
+            {nextVideo.chapterId !== video.chapterId
+              ? `다음 교재 (${nextVideo.seriesTitle}) →`
+              : "다음 강의 →"}
           </Link>
         ) : (
           <Link href="/student" className="font-semibold text-indigo-600 hover:text-indigo-800">
