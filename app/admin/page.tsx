@@ -221,9 +221,23 @@ export default async function AdminPage({
                 <DeleteSubjectButton subjectId={subject.id} subjectLabel={subject.label} />
               </div>
             </div>
-            <p className="mt-1 text-xs text-zinc-400">
-              시리즈 {subject.series.length}개:{" "}
-              {subject.series.map((s) => s.title).join(", ") || "없음"}
+            <p className="mt-1 flex flex-wrap items-baseline gap-x-1 text-xs text-zinc-400">
+              <span>시리즈 {subject.series.length}개:</span>
+              {subject.series.length === 0 ? (
+                "없음"
+              ) : (
+                subject.series.map((s, i) => (
+                  <span key={s.id}>
+                    <Link
+                      href={`/admin/subjects/${subject.key}/series/${s.id}`}
+                      className="text-indigo-600 hover:underline"
+                    >
+                      {s.title}
+                    </Link>
+                    {i < subject.series.length - 1 && ","}
+                  </span>
+                ))
+              )}
             </p>
           </div>
         ))}
