@@ -16,7 +16,12 @@ export default async function AdminSeriesPage({
     where: { id: seriesId },
     include: {
       subject: true,
-      chapters: { orderBy: { order: "asc" }, include: { _count: { select: { videos: true } } } },
+      chapters: {
+        orderBy: { order: "asc" },
+        include: {
+          videos: { orderBy: { order: "asc" }, select: { id: true, title: true, videoUrl: true } },
+        },
+      },
     },
   });
   if (!series || series.subject.key !== subjectKey) notFound();
@@ -55,7 +60,7 @@ export default async function AdminSeriesPage({
                   className="w-16 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm"
                 />
               </label>
-              <span className="text-xs text-zinc-400">영상 {ch._count.videos}개</span>
+              <span className="text-xs text-zinc-400">영상 {ch.videos.length}개</span>
               <button className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700">
                 저장
               </button>
@@ -72,6 +77,17 @@ export default async function AdminSeriesPage({
                 삭제
               </button>
             </form>
+            {ch.videos.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1 border-t border-zinc-100 pt-2">
+                {ch.videos.map((v, idx) => (
+                  <li key={v.id} className="flex items-center gap-2 text-xs text-zinc-500">
+                    <span className="w-5 shrink-0 text-center text-zinc-300">{idx + 1}</span>
+                    <span className="flex-1 truncate">{v.title}</span>
+                    <span className="shrink-0">{v.videoUrl ? "✅" : "⏳"}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         ))}
         {series.chapters.length === 0 && (
