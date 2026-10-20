@@ -26,6 +26,11 @@ export default function VideoPlayer({
 
   const [elapsed, setElapsed] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // "새 탭에서 영상 보기"를 눌러서 마이박스 임베드가 막힌 영상을 다른 탭에서 보는
+  // 학생들을 위한 상태. 이걸 누르면 이 탭이 백그라운드(hidden)여도 시간이 계속
+  // 흘러요 — 그렇지 않으면 새 탭에서 영상을 다 봐도 이 탭의 타이머가 멈춰 있어서
+  // 영원히 완료 처리가 안 되는 문제가 있었어요.
+  const [usingExternalTab, setUsingExternalTab] = useState(false);
 
   // 영상 길이(분)만큼 화면에 머물러야(=끝까지 봐야) 완료 처리돼요.
   // 길이 정보가 없는 영상은 기본 90초로 대체하니, 정확한 판정을 위해 관리자 페이지에서
@@ -36,13 +41,15 @@ export default function VideoPlayer({
   useEffect(() => {
     if (watched) return;
     const timer = setInterval(() => {
-      // 다른 탭/창으로 이동해 있으면(document.hidden) 시간이 세어지지 않음 → 스킵 방지
-      if (!document.hidden) {
+      // 다른 탭/창으로 이동해 있으면(document.hidden) 시간이 세어지지 않음 → 스킵 방지.
+      // 단, "새 탭에서 영상 보기"로 이동한 경우는 예외 — 거기서 보는 것도 정상 시청이므로
+      // 이 탭이 백그라운드여도 시간이 계속 흘러요.
+      if (!document.hidden || usingExternalTab) {
         setElapsed((s) => s + 1);
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [watched]);
+  }, [watched, usingExternalTab]);
 
   const remaining = Math.max(0, requiredSeconds - elapsed);
   const canComplete = elapsed >= requiredSeconds;
@@ -129,6 +136,7 @@ export default function VideoPlayer({
           href={videoUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => setUsingExternalTab(true)}
           className="font-medium text-indigo-600 underline"
         >
           새 탭에서 영상 보기 →
@@ -153,8 +161,10 @@ export default function VideoPlayer({
             </button>
             {!canComplete && (
               <p className="max-w-xs text-center text-xs text-zinc-400">
-                위 영상의 재생 버튼을 눌러 끝까지 보면 자동으로 완료 처리돼요. 다른 탭으로 이동하면
-                시간이 멈춰요.
+                위 영상의 재생 버튼을 눌러 끝까지 보면 자동으로 완료 처리돼요.
+                {usingExternalTab
+                  ? " 새 탭에서 보는 중에도 시간은 계속 흘러요."
+                  : " 다른 탭으로 이동하면 시간이 멈춰요."}
               </p>
             )}
           </form>
