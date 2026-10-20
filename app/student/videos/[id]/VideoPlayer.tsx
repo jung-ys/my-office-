@@ -24,6 +24,8 @@ export default function VideoPlayer({
   const formRef = useRef<HTMLFormElement>(null);
   const autoSubmittedRef = useRef(false);
 
+  const storageKey = `videoProgress:${videoId}`;
+
   const [elapsed, setElapsed] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   // "새 탭에서 영상 보기"를 눌러서 마이박스 임베드가 막힌 영상을 다른 탭에서 보는
@@ -31,6 +33,51 @@ export default function VideoPlayer({
   // 흘러요 — 그렇지 않으면 새 탭에서 영상을 다 봐도 이 탭의 타이머가 멈춰 있어서
   // 영원히 완료 처리가 안 되는 문제가 있었어요.
   const [usingExternalTab, setUsingExternalTab] = useState(false);
+
+  // 모바일 브라우저는 백그라운드에 오래 둔 탭을 메모리에서 통째로 내렸다가,
+  // 돌아왔을 때 새로고침해버리는 경우가 많아요. 그러면 지금까지 쌓인 시청 시간이
+  // 0으로 리셋되어 다 본 영상도 완료 처리가 안 될 수 있어서, 진행 상황을
+  // localStorage에 저장해두고 복귀 시 이어서 세요.
+  useEffect(() => {
+    if (watched) return;
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { elapsed?: number; usingExternalTab?: boolean };
+      // 새로고침 전 진행 상황을 외부 저장소(localStorage)에서 한 번만 복원하는 것이라
+      // 아래 setState 호출은 의도된 것이에요.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (typeof saved.elapsed === "number" && saved.elapsed > 0) setElapsed(saved.elapsed);
+      if (saved.usingExternalTab) setUsingExternalTab(true);
+    } catch {
+      /* localStorage 접근 불가(프라이빗 모드 등)는 조용히 무시 */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 복원 직후 첫 실행에서는 아직 반영 전인 기본값(0)으로 되써버릴 수 있어서,
+  // 마운트 시 첫 실행 한 번만 건너뛰어요(위 복원 효과가 먼저 실행된 뒤라
+  // 그 다음 렌더부터는 정상적으로 최신 값을 저장해요).
+  const skipFirstPersistRef = useRef(true);
+  useEffect(() => {
+    if (skipFirstPersistRef.current) {
+      skipFirstPersistRef.current = false;
+      return;
+    }
+    if (watched) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        /* 무시 */
+      }
+      return;
+    }
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ elapsed, usingExternalTab }));
+    } catch {
+      /* 무시 */
+    }
+  }, [elapsed, usingExternalTab, watched, storageKey]);
 
   // 영상 길이(분)만큼 화면에 머물러야(=끝까지 봐야) 완료 처리돼요.
   // 길이 정보가 없는 영상은 기본 90초로 대체하니, 정확한 판정을 위해 관리자 페이지에서
