@@ -221,6 +221,38 @@ export async function resetStudentData(studentId: string) {
   redirect(`/admin?reset=${encodeURIComponent(student.name)}`);
 }
 
+/**
+ * 학생이 실제로 봤는데 어떤 이유로든(예: 새 탭 시청 버그 등) 기록이 안 남은 영상을
+ * 관리자가 수동으로 "시청 완료"로 표시합니다. "시작 지점 설정"과 달리 이 영상
+ * 하나만 완료 처리하고 다른 영상은 건드리지 않아요.
+ */
+export async function markVideoWatchedByAdmin(studentId: string, formData: FormData) {
+  await requireAdmin();
+  const videoId = String(formData.get("videoId") ?? "").trim();
+  if (!videoId) return;
+
+  const now = new Date();
+  await prisma.progress.upsert({
+    where: { studentId_videoId: { studentId, videoId } },
+    create: { studentId, videoId, watched: true, firstWatchedAt: now, lastWatchedAt: now },
+    update: { watched: true, lastWatchedAt: now },
+  });
+
+  revalidatePath(`/admin/students/${studentId}`);
+  revalidatePath("/admin");
+  revalidatePath("/student");
+}
+
+/** 잘못 표시된 완료 기록을 하나만 지웁니다 (해당 영상은 다시 "미완료" 상태로 돌아감). */
+export async function deleteProgressEntry(studentId: string, progressId: string) {
+  await requireAdmin();
+  await prisma.progress.deleteMany({ where: { id: progressId, studentId } });
+
+  revalidatePath(`/admin/students/${studentId}`);
+  revalidatePath("/admin");
+  revalidatePath("/student");
+}
+
 export async function deleteStudent(studentId: string) {
   await requireAdmin();
   const student = await prisma.student.delete({ where: { id: studentId } });
